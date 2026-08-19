@@ -1,0 +1,1325 @@
+{
+  "meta": {
+    "sources": [
+      "MBSA Yearbook (massbaysailing.org) - Standard Rounding Marks Lists A, B, C",
+      "bostonyc.org BYC Wednesday Evening Races mark list (dated 5/2/13 - verify currency each season)",
+      "jycracing.org JYC Thursday Night Series, Appendix A"
+    ],
+    "note": "All weekend/regatta racing at BYC, EYC, CYC and JYC uses the shared MBSA Standard Rounding Marks (Lists A/B/C). BYC's Wednesday Night Series and JYC's Thursday Night Series each use their own club-specific letter list instead.",
+    "disclaimer": "Always confirm marks and course against the official Sailing Instructions / Race Committee signals before racing. Positions for portable marks are set on the water and are not fixed."
+  },
+  "clubs": {
+    "BYC": {
+      "name": "Boston Yacht Club",
+      "weeknight_series": {
+        "id": "byc_wednesday",
+        "label": "Wednesday Night Series"
+      }
+    },
+    "EYC": {
+      "name": "Eastern Yacht Club"
+    },
+    "CYC": {
+      "name": "Corinthian Yacht Club"
+    },
+    "JYC": {
+      "name": "Jubilee Yacht Club",
+      "weeknight_series": {
+        "id": "jyc_thursday",
+        "label": "Thursday Night Series"
+      }
+    }
+  },
+  "lists": {
+    "byc_wednesday": {
+      "label": "BYC Wednesday Night Series",
+      "marks": [
+        {
+          "id": "A",
+          "label": "A",
+          "name": "Tinkers Gong",
+          "govt_light": "GR \"TR\" GONG",
+          "lat": 42.48187,
+          "lon": -70.81444,
+          "gov_number": "10410",
+          "portable": false,
+          "notes": "Same physical mark as MBSA List A Mark D"
+        },
+        {
+          "id": "B",
+          "label": "B",
+          "name": "Marblehead Bell",
+          "govt_light": "RG \"FR\" Fl (2+1) R 6s BELL",
+          "lat": 42.50404,
+          "lon": -70.81795,
+          "gov_number": "10425",
+          "portable": false,
+          "notes": "Same physical mark as MBSA List B Mark 3"
+        },
+        {
+          "id": "D",
+          "label": "D",
+          "name": "Lasque Ledge",
+          "govt_light": "G C \"1\"",
+          "lat": 42.50745,
+          "lon": -70.83002,
+          "gov_number": "10430",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "E",
+          "label": "E",
+          "name": "Gordon Rock",
+          "govt_light": "G C \"1MH\"",
+          "lat": 42.50822,
+          "lon": -70.83376,
+          "gov_number": "10440",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "F",
+          "label": "F",
+          "name": "Portable Start/Finish",
+          "govt_light": "PORTABLE",
+          "lat": null,
+          "lon": null,
+          "gov_number": null,
+          "portable": true,
+          "notes": "Temporary - no fixed position"
+        },
+        {
+          "id": "G",
+          "label": "G",
+          "name": "Gerry Island",
+          "govt_light": "R N \"2MH\"",
+          "lat": 42.51084,
+          "lon": -70.83743,
+          "gov_number": "10445",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "H",
+          "label": "H",
+          "name": "Archer Rock",
+          "govt_light": "R N \"2\"",
+          "lat": 42.51206,
+          "lon": -70.82368,
+          "gov_number": "10435",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "J",
+          "label": "J",
+          "name": "Halfway Rock",
+          "govt_light": "R N \"4\"",
+          "lat": 42.5081,
+          "lon": -70.78065,
+          "gov_number": "10390",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "K",
+          "label": "K",
+          "name": "Martin Rock",
+          "govt_light": "G C \"7\"",
+          "lat": 42.51645,
+          "lon": -70.81295,
+          "gov_number": "10400",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "L",
+          "label": "L",
+          "name": "Chappel Ledge",
+          "govt_light": "G \"3\" Fl G 4s",
+          "lat": 42.51884,
+          "lon": -70.8245,
+          "gov_number": "10465",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "M",
+          "label": "M",
+          "name": "Midchannel Rock",
+          "govt_light": "R \"4\" Fl R 4s",
+          "lat": 42.5215,
+          "lon": -70.81832,
+          "gov_number": "10470",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "N",
+          "label": "N",
+          "name": "Coney Ledge",
+          "govt_light": "G C \"5\"",
+          "lat": 42.5277,
+          "lon": -70.82959,
+          "gov_number": "10475",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "P",
+          "label": "P",
+          "name": "Eagle Bar",
+          "govt_light": "R N \"6\"",
+          "lat": 42.52992,
+          "lon": -70.82136,
+          "gov_number": "10480",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "Q",
+          "label": "Q",
+          "name": "Eagle Island Channel",
+          "govt_light": "R N \"6\"",
+          "lat": 42.52817,
+          "lon": -70.80385,
+          "gov_number": "10380",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "R",
+          "label": "R",
+          "name": "Pope Head Shoal",
+          "govt_light": "G C \"5\"",
+          "lat": 42.52811,
+          "lon": -70.79941,
+          "gov_number": "10375",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "S",
+          "label": "S",
+          "name": "Eagle Island Channel",
+          "govt_light": "R N \"4\"",
+          "lat": 42.53229,
+          "lon": -70.80028,
+          "gov_number": "10370",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "U",
+          "label": "U",
+          "name": "Eagle Island Channel",
+          "govt_light": "G C \"3\"",
+          "lat": 42.53365,
+          "lon": -70.79516,
+          "gov_number": "10365",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "V",
+          "label": "V",
+          "name": "Haste Rock",
+          "govt_light": "G C \"7\"",
+          "lat": 42.53604,
+          "lon": -70.83362,
+          "gov_number": "10490",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "W",
+          "label": "W",
+          "name": "Windward Mark",
+          "govt_light": "PORTABLE",
+          "lat": null,
+          "lon": null,
+          "gov_number": null,
+          "portable": true,
+          "notes": "Temporary - no fixed position"
+        },
+        {
+          "id": "X",
+          "label": "X",
+          "name": "Salem Channel",
+          "govt_light": "G \"13\" Fl G 4s",
+          "lat": 42.54297,
+          "lon": -70.83922,
+          "gov_number": "10035",
+          "portable": false,
+          "notes": "Same physical mark as MBSA List B Mark 1"
+        },
+        {
+          "id": "Y",
+          "label": "Y",
+          "name": "John Ledge",
+          "govt_light": "R \"12\" Fl R 4s",
+          "lat": 42.54384,
+          "lon": -70.8147,
+          "gov_number": "10030",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "Z",
+          "label": "Z",
+          "name": "Powers Rock",
+          "govt_light": "G \"9\" Q G BELL",
+          "lat": 42.53988,
+          "lon": -70.78816,
+          "gov_number": "9995",
+          "portable": false,
+          "notes": "Same physical mark as JYC letter S"
+        }
+      ]
+    },
+    "jyc_thursday": {
+      "label": "JYC Thursday Night Series",
+      "marks": [
+        {
+          "id": "A",
+          "label": "A",
+          "name": "Beverly Entrance",
+          "govt_light": "R N \"2\"",
+          "lat": 42.53967,
+          "lon": -70.85867,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "B",
+          "label": "B",
+          "name": "Hospital Point (Quick Flash)",
+          "govt_light": "G \"15\" Q G",
+          "lat": 42.54133,
+          "lon": -70.8455,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "C",
+          "label": "C",
+          "name": "Between Haste & Salem Willows",
+          "govt_light": "R \"16\" Fl R 4s",
+          "lat": 42.53717,
+          "lon": -70.85217,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "D",
+          "label": "D",
+          "name": "Curtis Point (Slow Flash) - usual JYC start",
+          "govt_light": "G \"13\" Fl G 4s",
+          "lat": 42.543,
+          "lon": -70.83917,
+          "gov_number": null,
+          "portable": false,
+          "notes": "Same physical mark as MBSA List B Mark 1 / BYC Mark X"
+        },
+        {
+          "id": "E",
+          "label": "E",
+          "name": "Portable Start",
+          "govt_light": "Portable Start",
+          "lat": null,
+          "lon": null,
+          "gov_number": null,
+          "portable": true,
+          "notes": "Temporary - no fixed position"
+        },
+        {
+          "id": "F",
+          "label": "F",
+          "name": "Portable Finish",
+          "govt_light": "Portable Finish",
+          "lat": null,
+          "lon": null,
+          "gov_number": null,
+          "portable": true,
+          "notes": "Temporary - no fixed position"
+        },
+        {
+          "id": "G",
+          "label": "G",
+          "name": "Near Mingo Beach",
+          "govt_light": "R N \"14\"",
+          "lat": 42.5455,
+          "lon": -70.83917,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "H",
+          "label": "H",
+          "name": "Near Haste & Outfall",
+          "govt_light": "G C \"7\"",
+          "lat": 42.53617,
+          "lon": -70.83367,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "I",
+          "label": "I",
+          "name": "Coney Ledge",
+          "govt_light": "G C \"5\"",
+          "lat": 42.52783,
+          "lon": -70.82967,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "J",
+          "label": "J",
+          "name": "West end tail of Eagle Bar",
+          "govt_light": "R N \"6\"",
+          "lat": 42.53,
+          "lon": -70.82133,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "K",
+          "label": "K",
+          "name": "Chappel Ledge near Gray Rock",
+          "govt_light": "G \"3\" Fl G 4s",
+          "lat": 42.51883,
+          "lon": -70.8245,
+          "gov_number": null,
+          "portable": false,
+          "notes": "Same physical mark as BYC Mark L / MBSA List B Mark 2"
+        },
+        {
+          "id": "L",
+          "label": "L",
+          "name": "Eagle Island",
+          "govt_light": "R \"4\" Fl R 4s",
+          "lat": 42.52133,
+          "lon": -70.81833,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "M",
+          "label": "M",
+          "name": "Archer Rock - West of Cat Island",
+          "govt_light": "R N \"2\"",
+          "lat": 42.512,
+          "lon": -70.82367,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "N",
+          "label": "N",
+          "name": "Marblehead Bell",
+          "govt_light": "RG \"FR\" Fl (2+1) R 6s BELL",
+          "lat": 42.50417,
+          "lon": -70.818,
+          "gov_number": null,
+          "portable": false,
+          "notes": "Same physical mark as BYC Mark B / MBSA List B Mark 3"
+        },
+        {
+          "id": "O",
+          "label": "O",
+          "name": "Northeast of Cat Island",
+          "govt_light": "G C \"7\"",
+          "lat": 42.51633,
+          "lon": -70.813,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "P",
+          "label": "P",
+          "name": "Between Eagle Island & Bakers Island",
+          "govt_light": "R N \"6\"",
+          "lat": 42.528,
+          "lon": -70.80383,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "Q",
+          "label": "Q",
+          "name": "Pope Head",
+          "govt_light": "G C \"5\"",
+          "lat": 42.528,
+          "lon": -70.7995,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "R",
+          "label": "R",
+          "name": "South of Hardy Rocks",
+          "govt_light": "R N \"4\"",
+          "lat": 42.53217,
+          "lon": -70.80033,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "S",
+          "label": "S",
+          "name": "Powers Rock",
+          "govt_light": "G \"9\" Q G BELL",
+          "lat": 42.54,
+          "lon": -70.788,
+          "gov_number": null,
+          "portable": false,
+          "notes": "Same physical mark as BYC Mark Z"
+        },
+        {
+          "id": "U",
+          "label": "U",
+          "name": "West of Misery Island",
+          "govt_light": "R \"10\" Fl R 2.5s",
+          "lat": 42.543,
+          "lon": -70.8005,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "V",
+          "label": "V",
+          "name": "Bowditch Ledge",
+          "govt_light": "G \"11\" Fl G 4s",
+          "lat": 42.5425,
+          "lon": -70.80917,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "W",
+          "label": "W",
+          "name": "Portable Windward",
+          "govt_light": "Portable Windward",
+          "lat": null,
+          "lon": null,
+          "gov_number": null,
+          "portable": true,
+          "notes": "Temporary - no fixed position"
+        },
+        {
+          "id": "X",
+          "label": "X",
+          "name": "John Ledge - NW of Bowditch Ledge",
+          "govt_light": "R \"12\" Fl R 4s",
+          "lat": 42.54383,
+          "lon": -70.81467,
+          "gov_number": null,
+          "portable": false,
+          "notes": "Same physical mark as BYC Mark Y"
+        },
+        {
+          "id": "Y",
+          "label": "Y",
+          "name": "Near Salem Willows",
+          "govt_light": "G \"17\" Fl G 2.5s",
+          "lat": 42.53217,
+          "lon": -70.85583,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "Z",
+          "label": "Z",
+          "name": "Near Winter Island",
+          "govt_light": "G \"21\" Fl G 4s",
+          "lat": 42.522,
+          "lon": -70.867,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        }
+      ]
+    },
+    "mbsa_A": {
+      "label": "MBSA Standard List A",
+      "marks": [
+        {
+          "id": "A",
+          "label": "A",
+          "name": "Eastern Point Whistle",
+          "govt_light": "R \"2\" Fl R 4s",
+          "lat": 42.57068,
+          "lon": -70.66392,
+          "gov_number": "340",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "B",
+          "label": "B",
+          "name": "Newcomb Ledge Whistle",
+          "govt_light": "G \"1\" Fl G 4s",
+          "lat": 42.50773,
+          "lon": -70.73979,
+          "gov_number": "365",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "D",
+          "label": "D",
+          "name": "Tinkers Rock Gong",
+          "govt_light": "GR \"TR\"",
+          "lat": 42.48187,
+          "lon": -70.81444,
+          "gov_number": "10410",
+          "portable": false,
+          "notes": "Common EYC/BYC/CYC starting area mark"
+        },
+        {
+          "id": "E",
+          "label": "E",
+          "name": "Portable Gybe/Reach Mark",
+          "govt_light": null,
+          "lat": null,
+          "lon": null,
+          "gov_number": null,
+          "portable": true,
+          "notes": "Temporary - no fixed position"
+        },
+        {
+          "id": "F",
+          "label": "F",
+          "name": "Portable Start/Finish Mark",
+          "govt_light": null,
+          "lat": null,
+          "lon": null,
+          "gov_number": null,
+          "portable": true,
+          "notes": "Temporary - no fixed position"
+        },
+        {
+          "id": "G",
+          "label": "G",
+          "name": "Great Pig Rocks Buoy",
+          "govt_light": "R \"4\" Fl R 4s",
+          "lat": 42.46043,
+          "lon": -70.83682,
+          "gov_number": "365",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "H",
+          "label": "H",
+          "name": "Flip Rock Gong",
+          "govt_light": "RG \"FR\"",
+          "lat": 42.40237,
+          "lon": -70.92423,
+          "gov_number": "10555",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "J",
+          "label": "J",
+          "name": "Boston Approach Buoy",
+          "govt_light": "RW \"BG\" Mo (A) W",
+          "lat": 42.39078,
+          "lon": -70.85807,
+          "gov_number": "385",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "K",
+          "label": "K",
+          "name": "Boston Lighted Whistle",
+          "govt_light": "RW \"B\" Mo (A) W",
+          "lat": 42.37838,
+          "lon": -70.78282,
+          "gov_number": "410",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "L",
+          "label": "L",
+          "name": "Boston Approach Buoy",
+          "govt_light": "Y \"BF\" Fl (4)Y 20s",
+          "lat": 42.34556,
+          "lon": -70.65109,
+          "gov_number": "420",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "M",
+          "label": "M",
+          "name": "Boston Entrance Whistle",
+          "govt_light": "RW \"NC\" Mo (A) W",
+          "lat": 42.37558,
+          "lon": -70.90495,
+          "gov_number": "10680",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "N",
+          "label": "N",
+          "name": "The Graves Lighted Whistle",
+          "govt_light": "G \"5\" Fl G 4s",
+          "lat": 42.37578,
+          "lon": -70.8579,
+          "gov_number": "380",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "P",
+          "label": "P",
+          "name": "Boston South Entrance Can",
+          "govt_light": "GC \"1\"",
+          "lat": 42.36461,
+          "lon": -70.89717,
+          "gov_number": "10740",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "Q",
+          "label": "Q",
+          "name": "3.5 Fathom Ledge Bell",
+          "govt_light": "R \"2\" Fl R 4s",
+          "lat": 42.35138,
+          "lon": -70.84161,
+          "gov_number": "395",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "R",
+          "label": "R",
+          "name": "Boston Ledge Nun",
+          "govt_light": "RN \"6\"",
+          "lat": 42.33462,
+          "lon": -70.8638,
+          "gov_number": "405",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "S",
+          "label": "S",
+          "name": "Thieves Ledge Whistle",
+          "govt_light": "G \"1\" QG",
+          "lat": 42.32613,
+          "lon": -70.83037,
+          "gov_number": "430",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "U",
+          "label": "U",
+          "name": "Harding Ledge Bell",
+          "govt_light": "G \"1HL\" Fl G 4s",
+          "lat": 42.3095,
+          "lon": -70.84385,
+          "gov_number": "435",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "V",
+          "label": "V",
+          "name": "21 Foot Lighted Buoy (near Minots)",
+          "govt_light": "G \"21\" Fl G 4s",
+          "lat": 42.27632,
+          "lon": -70.70613,
+          "gov_number": "450",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "W",
+          "label": "W",
+          "name": "Portable Windward Mark",
+          "govt_light": null,
+          "lat": null,
+          "lon": null,
+          "gov_number": null,
+          "portable": true,
+          "notes": "Temporary - approx bearing/distance signaled by RC"
+        },
+        {
+          "id": "X",
+          "label": "X",
+          "name": "Davis Ledge Gong",
+          "govt_light": "G \"1DL\" Fl G 2.5s",
+          "lat": 42.27247,
+          "lon": -70.74758,
+          "gov_number": "445",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "Y",
+          "label": "Y",
+          "name": "Scituate Approach Gong",
+          "govt_light": "RW \"SA\" Mo (A) W",
+          "lat": 42.20209,
+          "lon": -70.69704,
+          "gov_number": "460",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "Z",
+          "label": "Z",
+          "name": "Farnham Rock Bell",
+          "govt_light": "R \"6\" Fl R 4s",
+          "lat": 42.09329,
+          "lon": -70.60725,
+          "gov_number": "12490",
+          "portable": false,
+          "notes": null
+        }
+      ]
+    },
+    "mbsa_B": {
+      "label": "MBSA Standard List B",
+      "marks": [
+        {
+          "id": "1",
+          "label": "1",
+          "name": "Salem Channel Buoy (Curtis Point)",
+          "govt_light": "G \"13\" Fl G 4s",
+          "lat": 42.54297,
+          "lon": -70.83922,
+          "gov_number": "10035",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "2",
+          "label": "2",
+          "name": "Marblehead Channel (Chappel LG)",
+          "govt_light": "G \"3\" Fl G 4s",
+          "lat": 42.51884,
+          "lon": -70.8245,
+          "gov_number": "10465",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "3",
+          "label": "3",
+          "name": "Marblehead Channel Bell (15-Ft Rk)",
+          "govt_light": "RG \"FR\" Fl (2+1) R 6s",
+          "lat": 42.50404,
+          "lon": -70.81795,
+          "gov_number": "10425",
+          "portable": false,
+          "notes": "Common Corinthian/JYC starting area mark"
+        },
+        {
+          "id": "4",
+          "label": "4",
+          "name": "Salem Channel Buoy (Bowditch LG)",
+          "govt_light": "G \"11\" Fl G 4s",
+          "lat": 42.54247,
+          "lon": -70.80925,
+          "gov_number": "10020",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "5",
+          "label": "5",
+          "name": "Eagle I Channel Can (Pope Head)",
+          "govt_light": "GC \"5\"",
+          "lat": 42.52811,
+          "lon": -70.79941,
+          "gov_number": "10375",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "6",
+          "label": "6",
+          "name": "Children's I Chan Nun (Nr Half Rk)",
+          "govt_light": "RN \"4\"",
+          "lat": 42.5081,
+          "lon": -70.78065,
+          "gov_number": "10390",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "7",
+          "label": "7",
+          "name": "Salem Channel Bell (Powers LG)",
+          "govt_light": "G \"9\" QG",
+          "lat": 42.53988,
+          "lon": -70.78816,
+          "gov_number": "9995",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "8",
+          "label": "8",
+          "name": "Salem Channel Nun (Gales LG)",
+          "govt_light": "RN \"6\"",
+          "lat": 42.54713,
+          "lon": -70.76485,
+          "gov_number": "9980",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "9",
+          "label": "9",
+          "name": "Salem Channel Can",
+          "govt_light": "GC \"5\"",
+          "lat": 42.52945,
+          "lon": -70.76197,
+          "gov_number": "9970",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "0",
+          "label": "0",
+          "name": "Salem Channel Can",
+          "govt_light": "GC \"3\"",
+          "lat": 42.51913,
+          "lon": -70.75122,
+          "gov_number": "9965",
+          "portable": false,
+          "notes": null
+        }
+      ]
+    },
+    "mbsa_C": {
+      "label": "MBSA Standard List C",
+      "marks": [
+        {
+          "id": "1",
+          "label": "1",
+          "name": "Boston North Channel Bell (Finns Ledge)",
+          "govt_light": "R \"2\" QR",
+          "lat": 42.36962,
+          "lon": -70.91927,
+          "gov_number": "10685",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "2",
+          "label": "2",
+          "name": "Boston North Channel Buoy",
+          "govt_light": "G \"5\" Fl G 2.5s",
+          "lat": 42.35739,
+          "lon": -70.9257,
+          "gov_number": "10700",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "3",
+          "label": "3",
+          "name": "President Roads Junction",
+          "govt_light": "GR \"PR\" Fl (2+1)G 6s",
+          "lat": 42.34149,
+          "lon": -70.93711,
+          "gov_number": "10735",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "4",
+          "label": "4",
+          "name": "President Roads Anchorage Gong",
+          "govt_light": "Y \"A\"",
+          "lat": 42.34319,
+          "lon": -70.95936,
+          "gov_number": "10815",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "5",
+          "label": "5",
+          "name": "President Roads Anchorage Buoy",
+          "govt_light": "N \"E\"",
+          "lat": 42.33688,
+          "lon": -70.97965,
+          "gov_number": "10860",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "6",
+          "label": "6",
+          "name": "Winthrop Harbor Approach Buoy",
+          "govt_light": "RN \"4\"",
+          "lat": 42.3503,
+          "lon": -70.97839,
+          "gov_number": "11045",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "7",
+          "label": "7",
+          "name": "Boston Main Channel Buoy (Castle Island)",
+          "govt_light": "R \"10\" Fl R 6s",
+          "lat": 42.34531,
+          "lon": -71.01208,
+          "gov_number": "10910",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "8",
+          "label": "8",
+          "name": "Boston Main Channel Buoy",
+          "govt_light": "R \"6\" Fl R 2.5s",
+          "lat": 42.33669,
+          "lon": -70.99834,
+          "gov_number": "10895",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "9",
+          "label": "9",
+          "name": "Long Island Head Buoy (President Roads)",
+          "govt_light": "G \"17\" Fl G 2.5s",
+          "lat": 42.33259,
+          "lon": -70.95873,
+          "gov_number": "10805",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "10",
+          "label": "10",
+          "name": "Sculpin Ledge Buoy",
+          "govt_light": "RN \"8A\"",
+          "lat": 42.3151,
+          "lon": -70.98088,
+          "gov_number": "11575",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "11",
+          "label": "11",
+          "name": "Dorchester Bay Buoy (NW Thompson Is.)",
+          "govt_light": "RN \"4\"",
+          "lat": 42.32157,
+          "lon": -71.01334,
+          "gov_number": "11205",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "12",
+          "label": "12",
+          "name": "Western Way Buoy (West Head)",
+          "govt_light": "RN \"6\"",
+          "lat": 42.30656,
+          "lon": -70.97591,
+          "gov_number": "11564",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "13",
+          "label": "13",
+          "name": "Nantasket Roads Chan Bell (Pt. Allerton)",
+          "govt_light": "G \"3\" Fl G 4s",
+          "lat": 42.31865,
+          "lon": -70.87972,
+          "gov_number": "11355",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "14",
+          "label": "14",
+          "name": "Kelly Rock Bell (The Narrows)",
+          "govt_light": "R \"2\"",
+          "lat": 42.3206,
+          "lon": -70.9117,
+          "gov_number": "11415",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "15",
+          "label": "15",
+          "name": "Nantasket Roads Channel Buoy (N Hull Gut)",
+          "govt_light": "G \"11\" Fl G 2.5s",
+          "lat": 42.31121,
+          "lon": -70.9211,
+          "gov_number": "11395",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "16",
+          "label": "16",
+          "name": "Rainsford Island Shoal Danger Buoy",
+          "govt_light": "W Or",
+          "lat": 42.31045,
+          "lon": -70.94536,
+          "gov_number": "11507",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "17",
+          "label": "17",
+          "name": "Weymouth Fore River Channel Buoy",
+          "govt_light": "G \"5\" Fl G 4s",
+          "lat": 42.29388,
+          "lon": -70.92341,
+          "gov_number": "11660",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "18",
+          "label": "18",
+          "name": "Bumkin Island (Shoal) Buoy",
+          "govt_light": "G \"1\" Fl G 4s",
+          "lat": 42.29029,
+          "lon": -70.91432,
+          "gov_number": "11945",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "19",
+          "label": "19",
+          "name": "Crow Point Flats Buoy (Bumkin Is.)",
+          "govt_light": "RG N \"CF\"",
+          "lat": 42.28208,
+          "lon": -70.91,
+          "gov_number": "11970",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "21",
+          "label": "21",
+          "name": "Houghs Neck Channel Buoy",
+          "govt_light": "GC \"1\"",
+          "lat": 42.27533,
+          "lon": -70.94386,
+          "gov_number": "11620",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "22",
+          "label": "22",
+          "name": "Weymouth Fore River Channel Light",
+          "govt_light": "\"13\" QG",
+          "lat": 42.27118,
+          "lon": -70.92972,
+          "gov_number": "11710",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "23",
+          "label": "23",
+          "name": "Western Way Buoy WW",
+          "govt_light": "RG \"WW\" Fl (2+1)R 6s",
+          "lat": 42.27745,
+          "lon": -70.93217,
+          "gov_number": "11695",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "24",
+          "label": "24",
+          "name": "Weymouth Fore River Channel Buoy",
+          "govt_light": "G \"9\" Fl G 2.5s",
+          "lat": 42.28419,
+          "lon": -70.92979,
+          "gov_number": "11685",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "25",
+          "label": "25",
+          "name": "Western Way Buoy (Peddocks Island)",
+          "govt_light": "R \"2\" Fl R 2.5s",
+          "lat": 42.28341,
+          "lon": -70.94991,
+          "gov_number": "11537",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "26",
+          "label": "26",
+          "name": "Western Way Buoy (Peddocks Island)",
+          "govt_light": "G \"3\" Fl G 2.5s",
+          "lat": 42.28667,
+          "lon": -70.95778,
+          "gov_number": "11539",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "27",
+          "label": "27",
+          "name": "Nahant Rock",
+          "govt_light": "GC \"1\"",
+          "lat": 42.40611,
+          "lon": -70.94625,
+          "gov_number": "10560",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "28",
+          "label": "28",
+          "name": "Shag Rocks Lighted Buoy",
+          "govt_light": "R \"2\" Fl R 4s",
+          "lat": 42.41201,
+          "lon": -70.90599,
+          "gov_number": "10540",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "29",
+          "label": "29",
+          "name": "Weymouth Fore River Channel Buoy",
+          "govt_light": "G \"17\" Fl G 6s",
+          "lat": 42.26227,
+          "lon": -70.93729,
+          "gov_number": "11725",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "31",
+          "label": "31",
+          "name": "Nubble Channel Buoy",
+          "govt_light": "GC \"1\"",
+          "lat": 42.32539,
+          "lon": -70.94737,
+          "gov_number": "11485",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "32",
+          "label": "32",
+          "name": "Hospital Shoal Buoy",
+          "govt_light": "GR C \"HS\"",
+          "lat": 42.31222,
+          "lon": -70.9375,
+          "gov_number": "11504",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "33",
+          "label": "33",
+          "name": "Nixes Mate Bell (President Roads)",
+          "govt_light": "G \"15\" QG",
+          "lat": 42.33404,
+          "lon": -70.94458,
+          "gov_number": "10790",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "34",
+          "label": "34",
+          "name": "HB Racing (West of Outer Seal Rock)",
+          "govt_light": "Orange Barrel \"34\"",
+          "lat": 42.29667,
+          "lon": -70.91333,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "35",
+          "label": "35",
+          "name": "HB Racing (Middle of Hull Bay)",
+          "govt_light": "Orange Barrel \"35\"",
+          "lat": 42.29167,
+          "lon": -70.89667,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "37",
+          "label": "37",
+          "name": "Hingham Harbor Approach Buoy",
+          "govt_light": "RN \"6\"",
+          "lat": 42.27398,
+          "lon": -70.89886,
+          "gov_number": "11990",
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "HB",
+          "label": "HB",
+          "name": "Hingham Bay Starting Buoy (N of Sheep I.)",
+          "govt_light": "Wht \"HBSB\"",
+          "lat": 42.28833,
+          "lon": -70.92333,
+          "gov_number": null,
+          "portable": false,
+          "notes": null
+        },
+        {
+          "id": "W",
+          "label": "W",
+          "name": "Drop Mark",
+          "govt_light": null,
+          "lat": null,
+          "lon": null,
+          "gov_number": null,
+          "portable": true,
+          "notes": "Temporary"
+        }
+      ]
+    }
+  }
+}

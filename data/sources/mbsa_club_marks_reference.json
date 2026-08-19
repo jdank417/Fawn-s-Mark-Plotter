@@ -1,0 +1,32 @@
+{
+  "sources": [
+    "MBSA 2026 Yearbook (massbaysailing.org) - Standard Rounding Marks Lists A, B, C",
+    "bostonyc.org/files/BYC_Wed_Racing_List_of_Marks13.pdf - BYC Wednesday Evening Races mark list (dated 5/2/13, verify currency)",
+    "jycracing.org/thurs_content/thur_SI.pdf - JYC 2026 Thursday Night Series, Appendix A"
+  ],
+  "important_caveat": "Confirmed: only two club-specific letter tables exist. All weekend/regatta racing at all four clubs (BYC, EYC, CYC, JYC) uses the shared MBSA Standard Rounding Marks (Lists A, B, C). The only exceptions are BYC's Wednesday Night Series and JYC's Thursday Night Series, which each use their own club-specific A-Z letter list instead of MBSA lists.",
+  "lookup_logic": [
+    {
+      "condition": "Boston Yacht Club Wednesday Night Series",
+      "table_to_use": "byc_wednesday_marks.csv (BYC-specific list; letters C, I, O, T not used)"
+    },
+    {
+      "condition": "Jubilee Yacht Club Thursday Night Series",
+      "table_to_use": "jyc_thursday_marks.csv (JYC-specific list; E/F/W portable, T = twice around signal)"
+    },
+    {
+      "condition": "Everything else - all weekend regattas and races at BYC, EYC, CYC, and JYC",
+      "table_to_use": "mbsa_marks.csv (Lists A, B, C - shared across all four clubs)"
+    }
+  ],
+  "cross_reference_note": "Several marks are physically identical across tables even though the letter differs by list - e.g. Marblehead Bell RG\"FR\" is MBSA List B Mark 3, BYC Mark B, and JYC Mark N all at once. Chappel Ledge G\"3\" is MBSA List B Mark 2, BYC Mark L, and JYC Mark K. Tinker's Rock Gong is MBSA List A Mark D and BYC Mark A. This is worth building as a 'physical mark' layer underneath the three letter tables - i.e. store each buoy once by its government number, then map (club/list, letter) -> government number, so the app can recognize when two different postings point at the same real-world buoy.",
+  "data_files": {
+    "mbsa_standard_lists_A_B_C": "mbsa_marks.csv",
+    "byc_wednesday_night": "byc_wednesday_marks.csv",
+    "jyc_thursday_night": "jyc_thursday_marks.csv"
+  },
+  "still_unverified": [
+    "Whether the BYC list (footer dated 5/2/13) has been updated since - worth a currency check before shipping",
+    "Whether JYC or BYC guest/pursuit races hosted at other clubs (e.g. EYC Friday pursuit races) use the host club MBSA list or the home club weeknight list - the sailing instructions for those point to \"government navigation buoys\" generically"
+  ]
+}

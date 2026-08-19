@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fawn's Mark Plotter</title>
+<meta name="description" content="Pick your club and tonight's course, get the plotted course and compass headings for every mark.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⛵</text></svg>">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <h1>⛵ Fawn's Mark Plotter</h1>
+  <p class="tagline">Pick your club, build tonight's course, get the heading for every leg.</p>
+</header>
+
+<main>
+  <section class="panel" id="setup-panel">
+    <h2>1. Tonight's Race</h2>
+    <div class="field-row">
+      <label for="club-select">Yacht Club</label>
+      <select id="club-select"></select>
+    </div>
+    <div class="field-row" id="series-row" hidden>
+      <label for="series-select">Racing</label>
+      <select id="series-select"></select>
+    </div>
+    <div class="field-row" id="mbsa-list-row" hidden>
+      <label for="mbsa-list-select">MBSA Mark List</label>
+      <select id="mbsa-list-select">
+        <option value="mbsa_A">List A (Boston outer / Cape Ann approach)</option>
+        <option value="mbsa_B">List B (Marblehead / Salem)</option>
+        <option value="mbsa_C">List C (Boston Harbor / Hingham)</option>
+      </select>
+    </div>
+    <p class="hint" id="list-hint"></p>
+  </section>
+
+  <section class="panel" id="course-panel" hidden>
+    <h2>2. Build the Course</h2>
+    <div class="field-row">
+      <label for="mark-picker">Add mark</label>
+      <select id="mark-picker"></select>
+      <button type="button" id="add-mark-btn">Add</button>
+    </div>
+    <ol id="course-list" class="course-list"></ol>
+    <div class="course-actions">
+      <button type="button" id="clear-course-btn" class="secondary">Clear course</button>
+      <span class="hint">Reorder with the ▲▼ buttons, or ✕ to remove a mark.</span>
+    </div>
+  </section>
+
+  <section class="panel" id="results-panel" hidden>
+    <h2>3. Plotted Course &amp; Headings</h2>
+    <div class="field-row heading-options">
+      <label><input type="checkbox" id="use-magnetic"> Show magnetic heading</label>
+      <label class="variation-label">Variation
+        <input type="number" id="variation" value="-14.6" step="0.1" style="width:5.5em"> ° (W is negative)
+      </label>
+    </div>
+    <div id="map"></div>
+    <div class="table-wrap">
+      <table id="legs-table">
+        <thead>
+          <tr><th>Leg</th><th>From → To</th><th>Distance</th><th>True Hdg</th><th>Mag Hdg</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p id="totals" class="totals"></p>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p id="footer-note">Loading mark data…</p>
+  <p class="disclaimer">Always confirm marks and course against the official Sailing Instructions and Race Committee signals before racing. Portable mark positions are set on the water and are approximate here.</p>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="js/app.js"></script>
+</body>
+</html>
