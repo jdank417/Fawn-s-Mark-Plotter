@@ -1,0 +1,27 @@
+mark,name,description,latitude_dm,longitude_dm,latitude_dd,longitude_dd,notes
+A,"R N \"2\"",Beverly Entrance,42° 32.38' N,70° 51.52' W,42.53967,-70.85867,
+B,"G \"15\" Q G",Hospital Point (Quick Flash),42° 32.48' N,70° 50.73' W,42.54133,-70.84550,
+C,"R \"16\" Fl R 4s",Between Haste & Salem Willows,42° 32.23' N,70° 51.13' W,42.53717,-70.85217,
+D,"G \"13\" Fl G 4s",Curtis Point (Slow Flash) - usual JYC start,42° 32.58' N,70° 50.35' W,42.54300,-70.83917,Same physical mark as MBSA List B Mark 1 / BYC Mark X
+E,Portable Start,,,,,,Temporary - no fixed position
+F,Portable Finish,,,,,,Temporary - no fixed position
+G,"R N \"14\"",Near Mingo Beach,42° 32.73' N,70° 50.35' W,42.54550,-70.83917,
+H,"G C \"7\"",Near Haste & Outfall,42° 32.17' N,70° 50.02' W,42.53617,-70.83367,
+I,"G C \"5\"",Coney Ledge,42° 31.67' N,70° 49.78' W,42.52783,-70.82967,
+J,"R N \"6\"",West end tail of Eagle Bar,42° 31.80' N,70° 49.28' W,42.53000,-70.82133,
+K,"G \"3\" Fl G 4s",Chappel Ledge near Gray Rock,42° 31.13' N,70° 49.47' W,42.51883,-70.82450,Same physical mark as BYC Mark L / MBSA List B Mark 2
+L,"R \"4\" Fl R 4s",Eagle Island,42° 31.28' N,70° 49.10' W,42.52133,-70.81833,
+M,"R N \"2\"",Archer Rock - West of Cat Island,42° 30.72' N,70° 49.42' W,42.51200,-70.82367,
+N,"RG \"FR\" Fl (2+1) R 6s BELL",Marblehead Bell,42° 30.25' N,70° 49.08' W,42.50417,-70.81800,Same physical mark as BYC Mark B / MBSA List B Mark 3
+O,"G C \"7\"",Northeast of Cat Island,42° 30.98' N,70° 48.78' W,42.51633,-70.81300,
+P,"R N \"6\"",Between Eagle Island & Bakers Island,42° 31.68' N,70° 48.23' W,42.52800,-70.80383,
+Q,"G C \"5\"",Pope Head,42° 31.68' N,70° 47.97' W,42.52800,-70.79950,
+R,"R N \"4\"",South of Hardy Rocks,42° 31.93' N,70° 48.02' W,42.53217,-70.80033,
+S,"G \"9\" Q G BELL",Powers Rock,42° 32.40' N,70° 47.28' W,42.54000,-70.78800,Same physical mark as BYC Mark Z
+T,Twice Around,,,,,,Signal - not a physical mark
+U,"R \"10\" Fl R 2.5s",West of Misery Island,42° 32.58' N,70° 48.03' W,42.54300,-70.80050,
+V,"G \"11\" Fl G 4s",Bowditch Ledge,42° 32.55' N,70° 48.55' W,42.54250,-70.80917,
+W,Portable Windward,,,,,,Temporary - no fixed position
+X,"R \"12\" Fl R 4s",John Ledge - NW of Bowditch Ledge,42° 32.63' N,70° 48.88' W,42.54383,-70.81467,Same physical mark as BYC Mark Y
+Y,"G \"17\" Fl G 2.5s",Near Salem Willows,42° 31.93' N,70° 51.35' W,42.53217,-70.85583,
+Z,"G \"21\" Fl G 4s",Near Winter Island,42° 31.32' N,70° 52.02' W,42.52200,-70.86700,

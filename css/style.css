@@ -1,0 +1,250 @@
+:root {
+  --bg: #f4f7f9;
+  --panel-bg: #ffffff;
+  --text: #16232c;
+  --muted: #5b6b76;
+  --border: #d7e0e6;
+  --accent: #1d6fa5;
+  --accent-dark: #14507a;
+  --badge-bg: #fff3cd;
+  --badge-text: #7a5a00;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1720;
+    --panel-bg: #17222c;
+    --text: #e6edf2;
+    --muted: #9aacb8;
+    --border: #2a3947;
+    --accent: #4fa3d8;
+    --accent-dark: #7cc0ea;
+    --badge-bg: #4a3b00;
+    --badge-text: #ffe08a;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.site-header {
+  padding: 1.5rem 1.25rem 1rem;
+  text-align: center;
+}
+
+.site-header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.6rem;
+}
+
+.tagline {
+  margin: 0;
+  color: var(--muted);
+}
+
+main {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 0 1rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.panel h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+}
+
+.field-row label {
+  font-weight: 600;
+  min-width: 6rem;
+}
+
+select, input[type="number"], button {
+  font: inherit;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-bg);
+  color: var(--text);
+}
+
+select#mark-picker {
+  flex: 1;
+  min-width: 12rem;
+}
+
+button {
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+}
+
+button:hover { background: var(--accent-dark); }
+
+button.secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+button.icon-btn {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 0.15rem 0.5rem;
+  font-size: 0.9rem;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.course-list {
+  list-style: none;
+  margin: 0.75rem 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.course-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+}
+
+.course-item-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.course-item-label {
+  font-weight: 600;
+}
+
+.badge {
+  background: var(--badge-bg);
+  color: var(--badge-text);
+  border-radius: 999px;
+  padding: 0.05rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.course-item-controls {
+  display: flex;
+  gap: 0.3rem;
+  margin-left: auto;
+}
+
+.course-item-override {
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.course-item-override input {
+  width: 8rem;
+}
+
+.course-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.heading-options {
+  margin-bottom: 0.75rem;
+}
+
+.variation-label {
+  color: var(--muted);
+  font-weight: 400 !important;
+  min-width: auto !important;
+}
+
+#map {
+  height: 380px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+th {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+td.muted {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.totals {
+  font-weight: 600;
+  margin-top: 0.75rem;
+}
+
+.site-footer {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 0 1.25rem 2.5rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.site-footer .disclaimer {
+  margin-top: 0.4rem;
+}
