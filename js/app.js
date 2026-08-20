@@ -88,6 +88,8 @@
     rcGreenCaption: document.getElementById("rc-green-caption"),
     rcTwiceFlag: document.getElementById("rc-twice-flag"),
     rcHint: document.getElementById("rc-hint"),
+    rcPalette: document.getElementById("rc-palette"),
+    rcPaletteHint: document.getElementById("rc-palette-hint"),
   };
 
   fetch("data/marks.json")
@@ -146,8 +148,6 @@
     // upward before the tap resolved, and taps landed on the wrong control.
     document.addEventListener("click", (e) => {
       if (el.markInputWrap.contains(e.target) || el.suggestions.contains(e.target)) return;
-      // Board slot inputs drive the same list; clicking one must not close it.
-      if (e.target.closest(".rc-slot-input")) return;
       // The start buttons open the picker themselves; since this runs on the
       // bubble phase it would otherwise close what they just opened.
       if (e.target.closest("#mark-start-btn, #gps-start-btn")) return;
@@ -506,30 +506,6 @@
       return;
     }
 
-    if (target.kind === "slot") {
-      const entry = state.course.find((c) => c.uid === target.uid);
-      if (entry) {
-        entry.mark = mark;
-        renderChips();
-        renderBoard();
-        if (state.committed) renderResults();
-      }
-      hideSuggestions();
-      return;
-    }
-
-    if (target.kind === "newSlot") {
-      if (isRepeatOfLast(mark)) {
-        setStatus(mark.label + " is already the last mark.", true);
-        return;
-      }
-      pushMarkToCourse(mark);
-      setStatus("");
-      renderChips();
-      renderBoard({ focusNewSlot: true });
-      return;
-    }
-
     addMarkObject(mark, { keepSuggestions: true });
   }
 
@@ -695,148 +671,127 @@
     return state.course.concat(state.course.slice(1));
   }
 
-  function makeSlot(entry, index) {
-    const slot = document.createElement("div");
-    slot.className = "rc-slot" +
-      (entry && resolvedPosition(entry) == null ? " needs-position" : "");
+  // A row of the RC board: the mark's letter in its real buoy colour, its
+  // rounding flag, and a remove button. Rows are not typed into — marks come
+  // from the palette below, so a mark that isn't racing tonight can't be
+  // entered here at all.
+  function makeBoardRow(entry, index) {
+    const row = document.createElement("div");
+    const unplaced = resolvedPosition(entry) == null;
+    row.className = "rc-slot" + (unplaced ? " needs-position" : "");
 
     const order = document.createElement("div");
     order.className = "rc-slot-order";
-    order.textContent = entry ? String(index + 1) : "+";
-    slot.appendChild(order);
+    order.textContent = String(index + 1);
+    row.appendChild(order);
 
-    const input = document.createElement("input");
-    input.type = "text";
-    input.className = "rc-slot-input";
-    input.autocomplete = "off";
-    input.setAttribute("autocapitalize", "characters");
-    input.value = entry ? entry.mark.label : "";
-    input.placeholder = entry ? "" : "–";
-    input.setAttribute("aria-label", entry ? "Mark " + (index + 1) : "Add a mark");
-    if (entry) input.dataset.uid = String(entry.uid);
-    else input.dataset.newSlot = "true";
-    slot.appendChild(input);
+    const colorInfo = classifyMarkColor(entry.mark.govt_light, entry.mark.portable);
+    const badge = document.createElement("div");
+    badge.className = "rc-slot-badge mark-badge";
+    badge.setAttribute("style", markBadgeStyleAttr(colorInfo));
+    badge.textContent = entry.mark.label;
+    badge.title = entry.mark.label + " — " + entry.mark.name;
+    row.appendChild(badge);
 
+    if (unplaced) {
+      const setBtn = document.createElement("button");
+      setBtn.type = "button";
+      setBtn.className = "rc-slot-set" + (state.positionTargetUid === entry.uid ? " is-target" : "");
+      setBtn.textContent = "SET";
+      setBtn.title = entry.mark.label + " is set by the RC — tap, then use GPS or a charted mark";
+      setBtn.addEventListener("click", () => choosePositionTarget(entry));
+      row.appendChild(setBtn);
+    }
+
+    const rounding = effectiveRounding(entry);
+    const inherited = !entry.rounding && !!rounding;
     const flagBtn = document.createElement("button");
     flagBtn.type = "button";
     flagBtn.className = "rc-slot-flag";
-    const rounding = entry ? effectiveRounding(entry) : null;
-    // A slot showing the green flag's value rather than its own is drawn
-    // outlined instead of filled, so "following the flag" is visibly
-    // different from a rounding set on this mark alone.
-    const inherited = !!(entry && !entry.rounding && rounding);
     flagBtn.dataset.rounding = rounding || "";
     if (inherited) flagBtn.dataset.inherited = "true";
     flagBtn.textContent = rounding || "–";
-    flagBtn.title = entry
-      ? "Rounding for " + entry.mark.label +
-        (rounding ? " — " + roundingWord(rounding) : "") +
-        (inherited ? " (following the green flag)" : "") + " — tap to change"
-      : "";
-    if (!entry) flagBtn.disabled = true;
-    slot.appendChild(flagBtn);
-
-    if (entry) {
-      flagBtn.addEventListener("click", () => {
-        // Cycle this mark's own setting (unset -> S -> P -> unset) rather
-        // than the effective value, so every tap visits a distinct state
-        // even when the green flag already supplies a default.
-        entry.rounding = cycleRounding(entry.rounding);
-        renderBoard();
-        renderChips();
-        if (state.committed) renderResults();
-      });
-
-      const slotTarget = { kind: "slot", uid: entry.uid };
-      input.addEventListener("focus", () => showSuggestions(input.value, el.rcBoard, slotTarget));
-      input.addEventListener("click", () => showSuggestions(input.value, el.rcBoard, slotTarget));
-
-      input.addEventListener("input", () => {
-        const raw = input.value.trim();
-        showSuggestions(raw, el.rcBoard, slotTarget);
-        if (!raw) {
-          slot.classList.remove("is-invalid");
-          return;
-        }
-        const mark = resolveMarkById(raw) || resolveMark(raw);
-        if (mark) {
-          entry.mark = mark;
-          slot.classList.remove("is-invalid");
-          renderChips();
-          if (state.committed) renderResults();
-        } else {
-          slot.classList.add("is-invalid");
-        }
-      });
-
-      input.addEventListener("change", () => {
-        if (!input.value.trim()) {
-          state.course = state.course.filter((e) => e.uid !== entry.uid);
-          renderBoard();
-          renderChips();
-          if (state.committed) renderResults();
-          return;
-        }
-        renderBoard();
-      });
-    } else {
-      const newTarget = { kind: "newSlot" };
-      input.addEventListener("focus", () => showSuggestions(input.value, el.rcBoard, newTarget));
-      input.addEventListener("click", () => showSuggestions(input.value, el.rcBoard, newTarget));
-
-      // Trailing blank slot: typing a mark into it appends to the course.
-      input.addEventListener("input", () => {
-        const raw = input.value.trim();
-        showSuggestions(raw, el.rcBoard, newTarget);
-        if (!raw) return;
-        const mark = resolveMarkById(raw) || resolveMark(raw);
-        if (!mark) {
-          slot.classList.add("is-invalid");
-          return;
-        }
-        slot.classList.remove("is-invalid");
-        if (isRepeatOfLast(mark)) {
-          slot.classList.add("is-invalid");
-          setStatus(mark.label + " is already the last mark.", true);
-          return;
-        }
-        hideSuggestions();
-        pushMarkToCourse(mark);
-        renderChips();
-        if (state.committed) renderResults();
-        renderBoard({ focusNewSlot: true });
-      });
-    }
-
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        input.blur();
-      }
+    flagBtn.title = "Rounding for " + entry.mark.label +
+      (rounding ? " — " + roundingWord(rounding) : "") +
+      (inherited ? " (following the green flag)" : "") + " — tap to change";
+    flagBtn.addEventListener("click", () => {
+      entry.rounding = cycleRounding(entry.rounding);
+      renderBoard();
+      renderChips();
+      if (state.committed) renderResults();
     });
+    row.appendChild(flagBtn);
 
-    return slot;
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "rc-slot-remove";
+    removeBtn.textContent = "\u2715";
+    removeBtn.setAttribute("aria-label", "Remove " + entry.mark.label);
+    removeBtn.addEventListener("click", () => removeMark(entry.uid));
+    row.appendChild(removeBtn);
+
+    return row;
   }
 
-  function renderBoard(opts) {
+  // The palette of marks racing tonight. Tapping builds the course, so there
+  // is no keyboard on the water and no way to enter a mark that isn't on the
+  // club's list for this series.
+  function renderPalette() {
+    el.rcPalette.innerHTML = "";
+    const last = lastCourseMark();
+    currentMarks().forEach((mark) => {
+      const key = document.createElement("button");
+      key.type = "button";
+      const unplaced = mark.lat == null || mark.lon == null;
+      key.className = "rc-key" + (unplaced ? " is-unplaced" : "");
+      key.dataset.id = mark.id;
+      key.setAttribute("style", markBadgeStyleAttr(classifyMarkColor(mark.govt_light, mark.portable)));
+      key.textContent = mark.label;
+      key.title = mark.label + " — " + mark.name + (unplaced ? " (position set by the RC)" : "");
+      // Rounding the same mark twice running isn't a course, and it plots two
+      // markers on one spot, so the key is simply unavailable.
+      if (last && last.id === mark.id) {
+        key.disabled = true;
+        key.title = mark.label + " is already the last mark";
+      }
+      key.addEventListener("click", () => {
+        pushMarkToCourse(mark);
+        setStatus("");
+        renderChips();
+        renderBoard();
+        if (state.committed) renderResults();
+      });
+      el.rcPalette.appendChild(key);
+    });
+
+    const unplacedCount = currentMarks().filter((m) => m.lat == null).length;
+    el.rcPaletteHint.textContent = unplacedCount
+      ? "Tap a mark to add it. Outlined marks are set by the RC — they need a position before the course will plot."
+      : "Tap a mark to add it to the board.";
+  }
+
+  function renderBoard() {
     if (state.entryMode !== "committee") return;
-    el.rcBoard.onscroll = positionSuggestions;
     renderGreenFlag();
+
     el.rcBoard.innerHTML = "";
-    state.course.forEach((entry, idx) => el.rcBoard.appendChild(makeSlot(entry, idx)));
-    el.rcBoard.appendChild(makeSlot(null, state.course.length));
+    if (state.course.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "rc-board-empty";
+      empty.textContent = "Tap marks below to build the board";
+      el.rcBoard.appendChild(empty);
+    } else {
+      state.course.forEach((entry, idx) => el.rcBoard.appendChild(makeBoardRow(entry, idx)));
+    }
+
+    renderPalette();
 
     const twiceNote = state.twiceAround ? " Flag T is up — the course is sailed twice." : "";
     el.rcHint.textContent = (state.course.length
-      ? "Type the letters down the board in order; tap a mark's flag to set its rounding."
-      : "Type the course letters down the board, first mark at the top.") + twiceNote;
-
-    if (opts && opts.focusNewSlot) {
-      const newInput = el.rcBoard.querySelector('input[data-new-slot="true"]');
-      if (newInput) newInput.focus();
-      el.rcBoard.scrollLeft = el.rcBoard.scrollWidth;
-    }
+      ? "The board reads top to bottom; tap a mark's flag to set its rounding."
+      : "Build the board in the order the RC posted it, first mark at the top.") + twiceNote;
   }
+
 
   function choosePositionTarget(entry) {
     state.positionTargetUid = state.positionTargetUid === entry.uid ? null : entry.uid;
@@ -909,16 +864,8 @@
       setStatus("Add at least two marks to plot a course.", true);
       return;
     }
-    // Every list carries RC-set marks with no charted position (BYC F/W,
-    // JYC E/F/W, MBSA E/F/W). Plotting with one still unplaced is what
-    // produced legs that looked missing, so require a position first.
-    const unplaced = state.course.filter((e) => resolvedPosition(e) == null);
-    if (unplaced.length > 0) {
-      const names = [...new Set(unplaced.map((e) => e.mark.label))].join(", ");
-      setStatus(
-        "Set a position for " + names + " first — tap SET on the mark, or use GPS Start.",
-        true
-      );
+    if (unplacedMarks().length > 0) {
+      reportUnplaced();
       return;
     }
     state.committed = true;
@@ -960,8 +907,28 @@
     return String(Math.round(deg)).padStart(3, "0") + "°";
   }
 
+  // Every list carries RC-set marks with no charted position (BYC F/W, JYC
+  // E/F/W, MBSA E/F/W). A course containing one can't be plotted.
+  function unplacedMarks() {
+    return state.course.filter((e) => resolvedPosition(e) == null);
+  }
+
+  function reportUnplaced() {
+    const names = [...new Set(unplacedMarks().map((e) => e.mark.label))].join(", ");
+    setStatus("Set a position for " + names + " before plotting — tap SET on the mark.", true);
+  }
+
   function renderResults() {
     if (!state.committed) return;
+    // Guard here rather than only in setCourse: once a course is committed
+    // every later edit (adding a mark, changing a rounding, toggling
+    // magnetic) calls straight into this, which previously let an unplaced
+    // mark be plotted as a "position unknown" leg.
+    if (unplacedMarks().length > 0) {
+      reportUnplaced();
+      hideLegStrip();
+      return;
+    }
     // Re-rendering resets scroll to the left, which yanked the strip back to
     // leg 1 whenever anything changed. Restore where the user had it.
     const priorScroll = el.legStrip.scrollLeft;
