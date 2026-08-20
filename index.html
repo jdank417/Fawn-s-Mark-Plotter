@@ -64,23 +64,30 @@
       <div class="row mark-input-row">
         <div class="mark-input-wrap">
           <input type="text" id="mark-input" placeholder="Type a mark, or a whole course: A H F G" autocomplete="off" autocapitalize="characters">
-          <ul id="mark-suggestions" class="suggestions" hidden></ul>
         </div>
         <button type="button" id="add-mark-btn" class="square-btn">+</button>
       </div>
     </div>
 
+    <ul id="mark-suggestions" class="suggestions" hidden></ul>
+
     <div id="committee-entry" hidden>
       <div class="rc-boat">
         <div class="rc-hull">
-          <div class="rc-hull-top">
-            <button type="button" id="rc-green-flag" class="rc-flag" aria-pressed="false">
-              <span class="rc-flag-cloth"></span>
-              <span class="rc-flag-label">Green flag</span>
-            </button>
-            <div class="rc-boat-name">RACE COMMITTEE</div>
+          <div class="rc-boat-name">RACE COMMITTEE</div>
+          <div class="rc-deck">
+            <div class="rc-board" id="rc-board"></div>
+            <div class="rc-signals">
+              <button type="button" id="rc-green-flag" class="rc-signal-flag" aria-pressed="false">
+                <span class="rc-flag-cloth"></span>
+                <span class="rc-signal-caption" id="rc-green-caption">No flag</span>
+              </button>
+              <button type="button" id="rc-twice-flag" class="rc-signal-flag" aria-pressed="false">
+                <span class="rc-flag-cloth rc-flag-t"></span>
+                <span class="rc-signal-caption">Twice around</span>
+              </button>
+            </div>
           </div>
-          <div class="rc-board" id="rc-board"></div>
         </div>
         <div class="rc-waterline"></div>
       </div>
