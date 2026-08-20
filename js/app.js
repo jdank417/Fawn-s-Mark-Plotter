@@ -371,7 +371,11 @@
     for (let i = 0; i < state.course.length; i++) {
       const entry = state.course[i];
       const pos = resolvedPosition(entry);
-      mapPoints.push(pos ? { ...pos, label: entry.mark.label, name: entry.mark.name } : null);
+      mapPoints.push(
+        pos
+          ? { ...pos, label: entry.mark.label, name: entry.mark.name, govtLight: entry.mark.govt_light, portable: entry.mark.portable }
+          : null
+      );
       if (i === 0) continue;
 
       const prev = resolvedPosition(state.course[i - 1]);
@@ -433,13 +437,81 @@
     gpsLayer = L.layerGroup().addTo(map);
   }
 
-  function markBadgeIcon(label, isStart) {
+  // Classify a mark's real on-the-water color from its charted light
+  // characteristic (e.g. "R N \"2\"", "G C \"1\"", "RG \"FR\"..."). This
+  // follows standard USCG/IALA-B lateral buoyage notation: a leading R/G is
+  // a plain red/green mark (red nun / green can), RG or GR is a two-color
+  // junction (preferred-channel) mark, RW is a red-and-white safe-water
+  // mark, Y is a yellow special mark. Portable marks (RC-placed pins) have
+  // no charted color, so they stay neutral.
+  function classifyMarkColor(govtLight, isPortable) {
+    if (isPortable || !govtLight) return { kind: "neutral" };
+    const s = govtLight.trim().toUpperCase();
+    const prefix = (s.match(/^([A-Z]+)/) || [, ""])[1];
+
+    if (prefix === "RG" || prefix === "GR") {
+      return { kind: "junction", top: prefix[0] === "R" ? "red" : "green", bottom: prefix[1] === "R" ? "red" : "green" };
+    }
+    if (prefix === "RW" || prefix === "WR") return { kind: "safe-water" };
+    if (prefix.startsWith("R")) return { kind: "red" };
+    if (prefix.startsWith("G")) return { kind: "green" };
+    if (prefix === "Y") return { kind: "yellow" };
+    if (prefix === "W" || prefix === "WHT") return /\bOR\b/.test(s) ? { kind: "orange" } : { kind: "white" };
+    if (/ORANGE/.test(s)) return { kind: "orange" };
+    // No leading color letter (e.g. a bare light characteristic like "13" QG) —
+    // fall back to the flash color if the rhythm names one explicitly.
+    if (/\bQG\b/.test(s)) return { kind: "green" };
+    if (/\bQR\b/.test(s)) return { kind: "red" };
+    return { kind: "neutral" };
+  }
+
+  function colorLabel(colorInfo) {
+    switch (colorInfo.kind) {
+      case "red": return "red";
+      case "green": return "green";
+      case "yellow": return "yellow";
+      case "orange": return "orange";
+      case "white": return "white";
+      case "safe-water": return "red/white";
+      case "junction": return colorInfo.top + "/" + colorInfo.bottom + " junction";
+      default: return "";
+    }
+  }
+
+  function markBadgeStyleAttr(colorInfo) {
+    switch (colorInfo.kind) {
+      case "red": return "background:var(--buoy-red);color:#fff";
+      case "green": return "background:var(--buoy-green);color:#fff";
+      case "yellow": return "background:var(--buoy-yellow);color:#1a1a1a";
+      case "orange": return "background:var(--buoy-orange);color:#fff";
+      case "white": return "background:var(--buoy-white);color:#1a1a1a;border-color:#888";
+      case "safe-water":
+        return "background:repeating-linear-gradient(90deg,var(--buoy-red) 0 4px,#fff 4px 8px);color:#1a1a1a";
+      case "junction": {
+        const c1 = colorInfo.top === "red" ? "var(--buoy-red)" : "var(--buoy-green)";
+        const c2 = colorInfo.bottom === "red" ? "var(--buoy-red)" : "var(--buoy-green)";
+        return "background:linear-gradient(to bottom," + c1 + " 50%," + c2 + " 50%);color:#fff";
+      }
+      default: return "";
+    }
+  }
+
+  function markBadgeIcon(label, colorInfo) {
     return L.divIcon({
       className: "mark-icon",
-      html: "<div class='mark-badge" + (isStart ? " start-badge" : "") + "'>" + label + "</div>",
+      html: "<div class='mark-badge' style='" + markBadgeStyleAttr(colorInfo) + "'>" + label + "</div>",
       iconSize: [26, 26],
       iconAnchor: [13, 13],
       tooltipAnchor: [0, -16],
+    });
+  }
+
+  function arrowIcon(bearingDeg) {
+    return L.divIcon({
+      className: "arrow-icon",
+      html: "<div class='course-arrow' style='transform:rotate(" + bearingDeg.toFixed(1) + "deg)'></div>",
+      iconSize: [18, 18],
+      iconAnchor: [9, 9],
     });
   }
 
@@ -451,17 +523,31 @@
       const known = points.filter(Boolean);
       if (known.length === 0) return;
 
-      known.forEach((p, idx) => {
-        L.marker([p.lat, p.lon], { icon: markBadgeIcon(p.label, idx === 0) })
+      known.forEach((p) => {
+        const colorInfo = classifyMarkColor(p.govtLight, p.portable);
+        const colorWord = colorLabel(colorInfo);
+        L.marker([p.lat, p.lon], { icon: markBadgeIcon(p.label, colorInfo) })
           .addTo(courseLayer)
-          .bindTooltip(p.label + " — " + p.name);
+          .bindTooltip(p.label + " — " + p.name + (colorWord ? " (" + colorWord + ")" : ""));
       });
+
       if (known.length > 1) {
-        L.polyline(points.filter(Boolean).map((p) => [p.lat, p.lon]), {
+        L.polyline(known.map((p) => [p.lat, p.lon]), {
           color: "#1d6fa5",
           weight: 3,
           dashArray: "6 4",
         }).addTo(courseLayer);
+
+        // Direction-of-travel arrow at the midpoint of each leg.
+        for (let i = 1; i < known.length; i++) {
+          const a = known[i - 1], b = known[i];
+          const bearing = initialBearing(a.lat, a.lon, b.lat, b.lon);
+          L.marker([(a.lat + b.lat) / 2, (a.lon + b.lon) / 2], {
+            icon: arrowIcon(bearing),
+            interactive: false,
+            keyboard: false,
+          }).addTo(courseLayer);
+        }
       }
       const bounds = L.latLngBounds(known.map((p) => [p.lat, p.lon]));
       map.fitBounds(bounds.pad(0.3));
