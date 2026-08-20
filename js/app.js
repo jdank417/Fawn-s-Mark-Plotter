@@ -30,6 +30,9 @@
     // uid of the entry currently being given a position, when the user picked
     // a specific mark to place rather than the start.
     positionTargetUid: null,
+    // When set, the mark palette picks the start instead of adding to the
+    // course, so choosing a start never leaves the RC board.
+    palettePick: null,
   };
 
   let uidCounter = 0;
@@ -215,16 +218,100 @@
     return el.clubSelect.value;
   }
 
-  // A pennant carrying the club's initials. This is a stand-in for the real
-  // burgee, not a reproduction of any club's actual design — swap in real
-  // artwork if the clubs provide it.
+  // ---------- Club burgees ----------
+  //
+  // Drawn from the published descriptions on Flags of the World. Only clubs
+  // whose design could actually be verified get real artwork; anything
+  // unverified falls back to a plain pennant with the club's initials rather
+  // than inventing an emblem for a real club.
+  const BURGEE_BLUE = "#12356f";
+  const BURGEE_RED = "#cc142b";
+
+  function starPoints(cx, cy, outer) {
+    const inner = outer * 0.382;
+    const pts = [];
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 === 0 ? outer : inner;
+      const a = (-90 + i * 36) * Math.PI / 180;
+      pts.push((cx + r * Math.cos(a)).toFixed(2) + "," + (cy + r * Math.sin(a)).toFixed(2));
+    }
+    return pts.join(" ");
+  }
+
+  // Boston YC: white, a blue horizontal arm and red vertical arm forming a
+  // cross, charged with a white star.
+  function burgeeBYC() {
+    return '<rect width="60" height="40" fill="#fff"/>' +
+      '<rect x="0" y="16" width="60" height="8" fill="' + BURGEE_BLUE + '"/>' +
+      '<rect x="12" y="0" width="8" height="40" fill="' + BURGEE_RED + '"/>' +
+      '<polygon points="' + starPoints(16, 20, 5.2) + '" fill="#fff"/>';
+  }
+
+  // Eastern YC: blue with a red bend charged with a white star. The bend runs
+  // from the top of the hoist down to the fly.
+  function burgeeEYC() {
+    return '<rect width="60" height="40" fill="' + BURGEE_BLUE + '"/>' +
+      '<polygon points="0,0 14.4,4.8 42.5,25.9 21.2,32.9 0,17" fill="' + BURGEE_RED + '"/>' +
+      '<polygon points="' + starPoints(18, 20, 6.4) + '" fill="#fff"/>';
+  }
+
+  // Corinthian YC (Marblehead): diagonally divided from the lower left
+  // white-red-blue, with a blue star in canton.
+  function burgeeCYC() {
+    // Divided *from the lower-left corner*: the bands radiate from that
+    // corner rather than running parallel — white on top, then red, then
+    // blue reaching the fly — with a blue star in the canton.
+    return '<rect width="60" height="40" fill="#fff"/>' +
+      '<polygon points="0,40 16,5.33 40,13.33" fill="' + BURGEE_RED + '"/>' +
+      '<polygon points="0,40 40,13.33 60,20" fill="' + BURGEE_BLUE + '"/>' +
+      '<polygon points="' + starPoints(7, 8.5, 4.6) + '" fill="' + BURGEE_BLUE + '"/>';
+  }
+
+  // Jubilee YC: quartered by a white cross — blue upper hoist bearing a white
+  // star, red lower hoist, red upper fly, blue lower fly.
+  function burgeeJYC() {
+    return '<rect width="60" height="40" fill="#fff"/>' +
+      '<rect x="0" y="0" width="17" height="17" fill="' + BURGEE_BLUE + '"/>' +
+      '<rect x="0" y="23" width="17" height="17" fill="' + BURGEE_RED + '"/>' +
+      '<rect x="23" y="0" width="37" height="17" fill="' + BURGEE_RED + '"/>' +
+      '<rect x="23" y="23" width="37" height="17" fill="' + BURGEE_BLUE + '"/>' +
+      '<polygon points="' + starPoints(8.5, 8.5, 6.2) + '" fill="#fff"/>';
+  }
+
+  const BURGEES = {
+    BYC: { draw: burgeeBYC, verified: true },
+    EYC: { draw: burgeeEYC, verified: true },
+    CYC: { draw: burgeeCYC, verified: true },
+    JYC: { draw: burgeeJYC, verified: true },
+  };
+
+  let burgeeClipSeq = 0;
+
+  function burgeeSvg(code, width, height) {
+    const spec = BURGEES[code];
+    const id = "burgeeClip" + (++burgeeClipSeq);
+    const body = spec
+      ? spec.draw()
+      : '<rect width="60" height="40" fill="#1d6fa5"/>' +
+        '<text x="6" y="25" font-size="15" font-weight="800" fill="#fff">' + code + '</text>';
+    return '<svg class="burgee-svg" viewBox="0 0 60 40" width="' + width + '" height="' + height +
+      '" aria-hidden="true">' +
+      '<defs><clipPath id="' + id + '"><path d="M0,0 L60,20 L0,40 Z"/></clipPath></defs>' +
+      '<g clip-path="url(#' + id + ')">' + body + '</g></svg>';
+  }
+
+  function burgeeTitle(code, clubName) {
+    return BURGEES[code]
+      ? clubName + " burgee"
+      : clubName + " — burgee design not verified, showing initials";
+  }
+
   function renderBurgee() {
     const code = currentClubCode();
     const club = currentClub();
     if (!code || !club) return;
-    const text = el.rcBurgee.querySelector(".burgee-text");
-    if (text) text.textContent = code;
-    el.rcBurgee.title = club.name;
+    el.rcBurgee.innerHTML = burgeeSvg(code, 34, 23);
+    el.rcBurgee.title = burgeeTitle(code, club.name);
     el.rcBurgeeCaption.textContent = club.name.replace(/ Yacht Club$/, "");
   }
 
@@ -260,6 +347,7 @@
     state.committed = false;
     state.startUid = null;
     state.positionTargetUid = null;
+    state.palettePick = null;
     renderPlacementButtons();
     renderChips();
     renderBoard();
@@ -540,6 +628,7 @@
     state.committed = false;
     state.startUid = null;
     state.positionTargetUid = null;
+    state.palettePick = null;
     renderPlacementButtons();
     cancelStartPickMode();
     renderChips();
@@ -774,7 +863,10 @@
   function renderPalette() {
     el.rcPalette.innerHTML = "";
     if (!state.listKey || !state.data.lists[state.listKey]) return;
+    const pickingStart = state.palettePick === "start";
     const last = lastCourseMark();
+    el.rcPalette.classList.toggle("is-picking", pickingStart);
+
     currentMarks().forEach((mark) => {
       const key = document.createElement("button");
       key.type = "button";
@@ -784,22 +876,40 @@
       key.setAttribute("style", markBadgeStyleAttr(classifyMarkColor(mark.govt_light, mark.portable)));
       key.textContent = mark.label;
       key.title = mark.label + " — " + mark.name + (unplaced ? " (position set by the RC)" : "");
-      // Rounding the same mark twice running isn't a course, and it plots two
-      // markers on one spot, so the key is simply unavailable.
-      if (last && last.id === mark.id) {
-        key.disabled = true;
-        key.title = mark.label + " is already the last mark";
+
+      if (pickingStart) {
+        // Starting at a mark copies its charted position, so one without a
+        // position has nothing to give.
+        if (unplaced) {
+          key.disabled = true;
+          key.title = mark.label + " has no charted position — use GPS instead";
+        }
+        key.addEventListener("click", () => {
+          state.palettePick = null;
+          finishPickStartFromMark(mark);
+        });
+      } else {
+        // Rounding the same mark twice running isn't a course, and it plots
+        // two markers on one spot, so the key is simply unavailable.
+        if (last && last.id === mark.id) {
+          key.disabled = true;
+          key.title = mark.label + " is already the last mark";
+        }
+        key.addEventListener("click", () => {
+          pushMarkToCourse(mark);
+          setStatus("");
+          renderChips();
+          renderBoard();
+          if (state.committed) renderResults();
+        });
       }
-      key.addEventListener("click", () => {
-        pushMarkToCourse(mark);
-        setStatus("");
-        renderChips();
-        renderBoard();
-        if (state.committed) renderResults();
-      });
       el.rcPalette.appendChild(key);
     });
 
+    if (pickingStart) {
+      el.rcPaletteHint.textContent = "Tap the mark the start line is at, or tap Mark Start again to cancel.";
+      return;
+    }
     const unplacedCount = currentMarks().filter((m) => m.lat == null).length;
     el.rcPaletteHint.textContent = unplacedCount
       ? "Tap a mark to add it. Outlined marks are set by the RC — they need a position before the course will plot."
@@ -1322,9 +1432,9 @@
   function burgeeIcon(code) {
     return L.divIcon({
       className: "burgee-icon",
-      html: "<span class='burgee burgee-map'><span class='burgee-text'>" + code + "</span></span>",
+      html: "<span class='burgee-map'>" + burgeeSvg(code, 30, 20) + "</span>",
       iconSize: [30, 20],
-      iconAnchor: [4, 10],
+      iconAnchor: [1, 10],
     });
   }
 
@@ -1559,9 +1669,16 @@
   // ---------- Set Start from a charted (government) mark ----------
 
   function beginPickStartFromMark() {
-    // The picker types into the classic mark input, which is hidden in
-    // committee mode — without this the button appeared to do nothing.
-    if (state.entryMode !== "classic") setEntryMode("classic");
+    // On the RC board, pick the start from the same mark palette rather than
+    // dragging the user over to the typed view.
+    if (state.entryMode === "committee") {
+      state.palettePick = state.palettePick === "start" ? null : "start";
+      setStatus(state.palettePick
+        ? "Tap the mark the start line is at."
+        : "");
+      renderBoard();
+      return;
+    }
     ensureStartEntry();
     state.startPickMode = true;
     el.markInputWrap.classList.add("picking");
