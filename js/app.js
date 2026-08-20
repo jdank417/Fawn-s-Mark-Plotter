@@ -1,37 +1,48 @@
 (function () {
   "use strict";
 
-  const NM_PER_DEG_LAT = 60; // nautical miles per degree of latitude
   const EARTH_RADIUS_NM = 3440.065;
+  const GPS_COLOR = "#1a73e8";
 
   const state = {
     data: null,
     listKey: null,
-    course: [], // { uid, mark: {...}, overrideLat, overrideLon }
+    course: [], // { uid, mark, overrideLat, overrideLon }
+    committed: false,
+    lastTotalNm: 0,
+    myPosition: null, // { lat, lon, accuracy }
+    watching: false,
+    gpsCentered: false,
   };
 
   let uidCounter = 0;
   let map = null;
-  let mapLayer = null;
+  let courseLayer = null;
+  let gpsLayer = null;
+  let watchId = null;
 
   const el = {
     clubSelect: document.getElementById("club-select"),
-    seriesRow: document.getElementById("series-row"),
     seriesSelect: document.getElementById("series-select"),
-    mbsaListRow: document.getElementById("mbsa-list-row"),
     mbsaListSelect: document.getElementById("mbsa-list-select"),
     listHint: document.getElementById("list-hint"),
-    coursePanel: document.getElementById("course-panel"),
-    markPicker: document.getElementById("mark-picker"),
+    markInput: document.getElementById("mark-input"),
+    markOptions: document.getElementById("mark-options"),
     addMarkBtn: document.getElementById("add-mark-btn"),
-    courseList: document.getElementById("course-list"),
-    clearCourseBtn: document.getElementById("clear-course-btn"),
-    resultsPanel: document.getElementById("results-panel"),
+    courseChips: document.getElementById("course-chips"),
     useMagnetic: document.getElementById("use-magnetic"),
     variation: document.getElementById("variation"),
-    legsTableBody: document.querySelector("#legs-table tbody"),
-    totals: document.getElementById("totals"),
-    footerNote: document.getElementById("footer-note"),
+    clearCourseBtn: document.getElementById("clear-course-btn"),
+    setStartBtn: document.getElementById("set-start-btn"),
+    setCourseBtn: document.getElementById("set-course-btn"),
+    buildStatus: document.getElementById("build-status"),
+    sheet: document.getElementById("sheet"),
+    sheetToggle: document.getElementById("sheet-toggle"),
+    sheetToggleLabel: document.getElementById("sheet-toggle-label"),
+    sheetToggleIcon: document.getElementById("sheet-toggle-icon"),
+    legStrip: document.getElementById("leg-strip"),
+    infoBtn: document.getElementById("info-btn"),
+    locateBtn: document.getElementById("locate-btn"),
   };
 
   fetch("data/marks.json")
@@ -41,12 +52,10 @@
     })
     .then((data) => {
       state.data = data;
-      el.footerNote.textContent = data.meta.note;
       init();
     })
     .catch((err) => {
-      el.footerNote.textContent =
-        "Could not load mark data (" + err.message + "). Try reloading the page.";
+      setStatus("Could not load mark data (" + err.message + "). Try reloading.", true);
     });
 
   function init() {
@@ -55,11 +64,26 @@
     el.seriesSelect.addEventListener("change", onSeriesOrListChange);
     el.mbsaListSelect.addEventListener("change", onSeriesOrListChange);
     el.addMarkBtn.addEventListener("click", addMarkToCourse);
+    el.markInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addMarkToCourse();
+      }
+    });
     el.clearCourseBtn.addEventListener("click", clearCourse);
-    el.useMagnetic.addEventListener("change", renderResults);
-    el.variation.addEventListener("input", renderResults);
+    el.setCourseBtn.addEventListener("click", setCourse);
+    el.setStartBtn.addEventListener("click", setStartFromGps);
+    el.useMagnetic.addEventListener("change", () => { if (state.committed) renderResults(); });
+    el.variation.addEventListener("input", () => { if (state.committed) renderResults(); });
+    el.sheetToggle.addEventListener("click", toggleSheet);
+    el.infoBtn.addEventListener("click", showInfo);
+    el.locateBtn.addEventListener("click", onLocateClick);
+
     onClubChange();
+    ensureMap();
   }
+
+  // ---------- Club / series / list selection ----------
 
   function populateClubs() {
     el.clubSelect.innerHTML = "";
@@ -79,18 +103,18 @@
   function onClubChange() {
     const club = currentClub();
     if (club.weeknight_series) {
-      el.seriesRow.hidden = false;
+      el.seriesSelect.hidden = false;
       el.seriesSelect.innerHTML = "";
       const weeknightOpt = document.createElement("option");
       weeknightOpt.value = "weeknight";
       weeknightOpt.textContent = club.weeknight_series.label;
       const mbsaOpt = document.createElement("option");
       mbsaOpt.value = "mbsa";
-      mbsaOpt.textContent = "Weekend / regatta (MBSA marks)";
+      mbsaOpt.textContent = "Weekend / regatta (MBSA)";
       el.seriesSelect.appendChild(weeknightOpt);
       el.seriesSelect.appendChild(mbsaOpt);
     } else {
-      el.seriesRow.hidden = true;
+      el.seriesSelect.hidden = true;
     }
     onSeriesOrListChange();
   }
@@ -98,52 +122,143 @@
   function onSeriesOrListChange() {
     const club = currentClub();
     const usesMbsa = !club.weeknight_series || el.seriesSelect.value === "mbsa";
-    el.mbsaListRow.hidden = !usesMbsa;
-
-    if (usesMbsa) {
-      state.listKey = el.mbsaListSelect.value;
-    } else {
-      state.listKey = club.weeknight_series.id;
-    }
+    el.mbsaListSelect.hidden = !usesMbsa;
+    state.listKey = usesMbsa ? el.mbsaListSelect.value : club.weeknight_series.id;
 
     const list = state.data.lists[state.listKey];
-    el.listHint.textContent = list.label + " — " + list.marks.length + " marks available.";
+    el.listHint.textContent = list.label + " — " + list.marks.length + " marks.";
 
-    // Changing the list invalidates any course already built against a
-    // different list, since letters/numbers mean different things per list.
+    populateMarkDatalist();
     state.course = [];
-    populateMarkPicker();
-    el.coursePanel.hidden = false;
-    renderCourse();
+    state.committed = false;
+    renderChips();
+    hideLegStrip();
+    setSheetExpanded(true);
+    updateSheetToggleLabel();
+    setStatus("");
   }
 
-  function populateMarkPicker() {
+  function populateMarkDatalist() {
     const list = state.data.lists[state.listKey];
-    el.markPicker.innerHTML = "";
+    el.markOptions.innerHTML = "";
     list.marks.forEach((mark) => {
       const opt = document.createElement("option");
-      opt.value = mark.id;
-      opt.textContent = mark.label + " — " + mark.name + (mark.portable ? " (portable)" : "");
-      el.markPicker.appendChild(opt);
+      opt.value = mark.label + " — " + mark.name + (mark.portable ? " (portable)" : "");
+      el.markOptions.appendChild(opt);
     });
+  }
+
+  // ---------- Course building ----------
+
+  function resolveMark(rawInput) {
+    const list = state.data.lists[state.listKey];
+    const raw = (rawInput || "").trim();
+    if (!raw) return null;
+    let candidateId = raw;
+    const dashIdx = raw.indexOf(" — ");
+    if (dashIdx !== -1) candidateId = raw.slice(0, dashIdx).trim();
+    const byId = list.marks.find((m) => m.id.toLowerCase() === candidateId.toLowerCase());
+    if (byId) return byId;
+    const lower = raw.toLowerCase();
+    const nameMatches = list.marks.filter((m) => m.name.toLowerCase().includes(lower));
+    if (nameMatches.length === 1) return nameMatches[0];
+    return null;
   }
 
   function addMarkToCourse() {
-    const list = state.data.lists[state.listKey];
-    const mark = list.marks.find((m) => m.id === el.markPicker.value);
-    if (!mark) return;
-    state.course.push({
-      uid: ++uidCounter,
-      mark: mark,
-      overrideLat: null,
-      overrideLon: null,
-    });
-    renderCourse();
+    const mark = resolveMark(el.markInput.value);
+    if (!mark) {
+      setStatus("No mark found for “" + el.markInput.value + "”.", true);
+      el.markInput.select();
+      return;
+    }
+    state.course.push({ uid: ++uidCounter, mark: mark, overrideLat: null, overrideLon: null });
+    el.markInput.value = "";
+    el.markInput.focus();
+    setStatus("");
+    renderChips();
+  }
+
+  function removeMark(uid) {
+    state.course = state.course.filter((e) => e.uid !== uid);
+    renderChips();
   }
 
   function clearCourse() {
     state.course = [];
-    renderCourse();
+    state.committed = false;
+    renderChips();
+    hideLegStrip();
+    updateSheetToggleLabel();
+    setStatus("");
+  }
+
+  function renderChips() {
+    el.courseChips.innerHTML = "";
+    if (state.course.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "chips-empty";
+      empty.textContent = "No marks yet — type or pick a mark above.";
+      el.courseChips.appendChild(empty);
+      return;
+    }
+    state.course.forEach((entry, idx) => {
+      const chip = document.createElement("span");
+      chip.className = "chip" + (entry.mark.portable ? " portable" : "");
+      const label = document.createElement("span");
+      label.textContent = (idx + 1) + ". " + entry.mark.label;
+      chip.appendChild(label);
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "chip-remove";
+      removeBtn.textContent = "✕";
+      removeBtn.setAttribute("aria-label", "Remove " + entry.mark.label);
+      removeBtn.addEventListener("click", () => removeMark(entry.uid));
+      chip.appendChild(removeBtn);
+      el.courseChips.appendChild(chip);
+    });
+  }
+
+  function setStatus(msg, isError) {
+    el.buildStatus.textContent = msg || "";
+    el.buildStatus.classList.toggle("error", !!isError);
+  }
+
+  // ---------- Sheet expand/collapse ----------
+
+  function setSheetExpanded(expanded) {
+    el.sheet.classList.toggle("collapsed", !expanded);
+  }
+
+  function toggleSheet() {
+    setSheetExpanded(el.sheet.classList.contains("collapsed"));
+  }
+
+  function updateSheetToggleLabel() {
+    if (state.committed && state.course.length > 0) {
+      const summary = state.course.map((e) => e.mark.label).join("-");
+      el.sheetToggleLabel.textContent = summary + " · " + state.lastTotalNm.toFixed(1) + " nm";
+    } else {
+      el.sheetToggleLabel.textContent = "Build course";
+    }
+  }
+
+  function hideLegStrip() {
+    el.legStrip.hidden = true;
+    el.legStrip.innerHTML = "";
+  }
+
+  // ---------- Commit course / compute results ----------
+
+  function setCourse() {
+    if (state.course.length < 2) {
+      setStatus("Add at least two marks to plot a course.", true);
+      return;
+    }
+    state.committed = true;
+    setStatus("");
+    renderResults();
+    setSheetExpanded(false);
   }
 
   function resolvedPosition(entry) {
@@ -154,101 +269,6 @@
       return { lat: entry.mark.lat, lon: entry.mark.lon };
     }
     return null;
-  }
-
-  function renderCourse() {
-    el.courseList.innerHTML = "";
-    state.course.forEach((entry, idx) => {
-      const li = document.createElement("li");
-      li.className = "course-item";
-
-      const main = document.createElement("div");
-      main.className = "course-item-main";
-
-      const label = document.createElement("span");
-      label.className = "course-item-label";
-      label.textContent = (idx + 1) + ". " + entry.mark.label + " — " + entry.mark.name;
-      main.appendChild(label);
-
-      if (entry.mark.portable) {
-        const badge = document.createElement("span");
-        badge.className = "badge";
-        badge.textContent = "portable";
-        main.appendChild(badge);
-      }
-
-      const controls = document.createElement("span");
-      controls.className = "course-item-controls";
-
-      const upBtn = mkBtn("▲", "Move up", () => {
-        if (idx === 0) return;
-        [state.course[idx - 1], state.course[idx]] = [state.course[idx], state.course[idx - 1]];
-        renderCourse();
-      });
-      const downBtn = mkBtn("▼", "Move down", () => {
-        if (idx === state.course.length - 1) return;
-        [state.course[idx + 1], state.course[idx]] = [state.course[idx], state.course[idx + 1]];
-        renderCourse();
-      });
-      const removeBtn = mkBtn("✕", "Remove", () => {
-        state.course.splice(idx, 1);
-        renderCourse();
-      });
-      controls.appendChild(upBtn);
-      controls.appendChild(downBtn);
-      controls.appendChild(removeBtn);
-      main.appendChild(controls);
-      li.appendChild(main);
-
-      if (entry.mark.portable) {
-        const overrideRow = document.createElement("div");
-        overrideRow.className = "course-item-override";
-
-        const latInput = document.createElement("input");
-        latInput.type = "number";
-        latInput.step = "0.00001";
-        latInput.placeholder = "lat (optional)";
-        latInput.value = entry.overrideLat != null ? entry.overrideLat : "";
-        latInput.addEventListener("input", () => {
-          entry.overrideLat = latInput.value === "" ? null : parseFloat(latInput.value);
-          renderResults();
-        });
-
-        const lonInput = document.createElement("input");
-        lonInput.type = "number";
-        lonInput.step = "0.00001";
-        lonInput.placeholder = "lon (optional)";
-        lonInput.value = entry.overrideLon != null ? entry.overrideLon : "";
-        lonInput.addEventListener("input", () => {
-          entry.overrideLon = lonInput.value === "" ? null : parseFloat(lonInput.value);
-          renderResults();
-        });
-
-        const note = document.createElement("span");
-        note.className = "hint";
-        note.textContent = "No fixed position — enter tonight's RC-set position to include this leg.";
-
-        overrideRow.appendChild(latInput);
-        overrideRow.appendChild(lonInput);
-        overrideRow.appendChild(note);
-        li.appendChild(overrideRow);
-      }
-
-      el.courseList.appendChild(li);
-    });
-
-    el.resultsPanel.hidden = state.course.length === 0;
-    renderResults();
-  }
-
-  function mkBtn(text, title, onClick) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.textContent = text;
-    btn.title = title;
-    btn.className = "icon-btn";
-    btn.addEventListener("click", onClick);
-    return btn;
   }
 
   function toRad(d) { return (d * Math.PI) / 180; }
@@ -267,8 +287,7 @@
     const dLambda = toRad(lon2 - lon1);
     const y = Math.sin(dLambda) * Math.cos(phi2);
     const x = Math.cos(phi1) * Math.sin(phi2) - Math.sin(phi1) * Math.cos(phi2) * Math.cos(dLambda);
-    let theta = toDeg(Math.atan2(y, x));
-    return (theta + 360) % 360;
+    return (toDeg(Math.atan2(y, x)) + 360) % 360;
   }
 
   function fmtHeading(deg) {
@@ -276,38 +295,29 @@
   }
 
   function renderResults() {
-    el.legsTableBody.innerHTML = "";
-    if (state.course.length === 0) {
-      el.totals.textContent = "";
-      renderMap([]);
-      return;
-    }
+    if (!state.committed) return;
+    el.legStrip.innerHTML = "";
+    el.legStrip.hidden = false;
 
     const variation = parseFloat(el.variation.value) || 0;
     const showMag = el.useMagnetic.checked;
-
     let totalNm = 0;
-    let legCount = 0;
-    let skipped = 0;
     const mapPoints = [];
 
     for (let i = 0; i < state.course.length; i++) {
       const entry = state.course[i];
       const pos = resolvedPosition(entry);
       mapPoints.push(pos ? { ...pos, label: entry.mark.label, name: entry.mark.name } : null);
-
       if (i === 0) continue;
+
       const prev = resolvedPosition(state.course[i - 1]);
-      const tr = document.createElement("tr");
-      const legLabel = state.course[i - 1].mark.label + " → " + entry.mark.label;
-      const nameLabel = state.course[i - 1].mark.name + " → " + entry.mark.name;
+      const card = document.createElement("div");
+      const route = state.course[i - 1].mark.label + " → " + entry.mark.label;
 
       if (!prev || !pos) {
-        skipped++;
-        tr.innerHTML =
-          "<td>" + i + "</td><td>" + legLabel + "<br><span class='hint'>" + nameLabel + "</span></td>" +
-          "<td colspan='3' class='muted'>Position unknown — set the portable mark's position above</td>";
-        el.legsTableBody.appendChild(tr);
+        card.className = "leg-card leg-missing";
+        card.innerHTML = "<div class='leg-route'>" + route + "</div><div class='leg-detail'>position unknown</div>";
+        el.legStrip.appendChild(card);
         continue;
       }
 
@@ -315,72 +325,184 @@
       const trueHdg = initialBearing(prev.lat, prev.lon, pos.lat, pos.lon);
       const magHdg = ((trueHdg - variation) % 360 + 360) % 360;
       totalNm += dist;
-      legCount++;
 
-      tr.innerHTML =
-        "<td>" + i + "</td>" +
-        "<td>" + legLabel + "<br><span class='hint'>" + nameLabel + "</span></td>" +
-        "<td>" + dist.toFixed(2) + " nm</td>" +
-        "<td>" + fmtHeading(trueHdg) + "</td>" +
-        "<td>" + (showMag ? fmtHeading(magHdg) : "—") + "</td>";
-      el.legsTableBody.appendChild(tr);
+      card.className = "leg-card";
+      const hdgText = showMag ? fmtHeading(magHdg) + "M" : fmtHeading(trueHdg) + "T";
+      card.innerHTML =
+        "<div class='leg-route'>" + route + "</div>" +
+        "<div class='leg-detail'>" + hdgText + " · " + dist.toFixed(2) + " nm</div>";
+      el.legStrip.appendChild(card);
     }
 
-    let totalsText = state.course.length + " marks, " + legCount + " leg" + (legCount === 1 ? "" : "s") +
-      " plotted, " + totalNm.toFixed(2) + " nm total";
-    if (skipped > 0) {
-      totalsText += " (" + skipped + " leg" + (skipped === 1 ? "" : "s") + " skipped — missing position)";
-    }
-    el.totals.textContent = totalsText;
+    const totalCard = document.createElement("div");
+    totalCard.className = "leg-total";
+    totalCard.textContent = totalNm.toFixed(2) + " nm total";
+    el.legStrip.appendChild(totalCard);
 
-    renderMap(mapPoints);
+    state.lastTotalNm = totalNm;
+    updateSheetToggleLabel();
+    renderCourseOnMap(mapPoints);
   }
 
-  let mapUnavailable = false;
+  // ---------- Map ----------
 
   function ensureMap() {
-    if (map || mapUnavailable) return;
+    if (map) return;
     if (typeof L === "undefined") {
-      mapUnavailable = true;
       const mapEl = document.getElementById("map");
-      if (mapEl) mapEl.textContent = "Map unavailable (couldn't load the map library — check your connection).";
+      if (mapEl) {
+        mapEl.innerHTML = "";
+        const msg = document.createElement("p");
+        msg.className = "map-fallback";
+        msg.textContent = "Map unavailable — couldn't load the map library. Check your connection; headings below still work.";
+        mapEl.appendChild(msg);
+      }
       return;
     }
-    map = L.map("map").setView([42.45, -70.82], 10);
+    map = L.map("map", { zoomControl: true, attributionControl: true }).setView([42.45, -70.82], 10);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 18,
       attribution: "&copy; OpenStreetMap contributors",
     }).addTo(map);
-    mapLayer = L.layerGroup().addTo(map);
+    courseLayer = L.layerGroup().addTo(map);
+    gpsLayer = L.layerGroup().addTo(map);
   }
 
-  function renderMap(points) {
-    // Map plotting is a nice-to-have on top of the heading table; never let
-    // a map/CDN problem break the course builder or the heading results.
+  function renderCourseOnMap(points) {
     try {
       ensureMap();
       if (!map) return;
-      mapLayer.clearLayers();
+      courseLayer.clearLayers();
       const known = points.filter(Boolean);
-      if (known.length === 0) {
-        return;
-      }
+      if (known.length === 0) return;
 
       known.forEach((p) => {
-        L.marker([p.lat, p.lon])
-          .addTo(mapLayer)
-          .bindTooltip(p.label + " — " + p.name, { permanent: false });
+        L.marker([p.lat, p.lon]).addTo(courseLayer).bindTooltip(p.label + " — " + p.name);
       });
-
       if (known.length > 1) {
-        const latlngs = points.filter(Boolean).map((p) => [p.lat, p.lon]);
-        L.polyline(latlngs, { color: "#1d6fa5", weight: 3, dashArray: "6 4" }).addTo(mapLayer);
+        L.polyline(points.filter(Boolean).map((p) => [p.lat, p.lon]), {
+          color: "#1d6fa5",
+          weight: 3,
+          dashArray: "6 4",
+        }).addTo(courseLayer);
       }
-
       const bounds = L.latLngBounds(known.map((p) => [p.lat, p.lon]));
-      map.fitBounds(bounds.pad(0.25));
+      map.fitBounds(bounds.pad(0.3));
     } catch (err) {
       console.error("Map rendering failed:", err);
     }
+  }
+
+  function showInfo() {
+    const meta = state.data && state.data.meta;
+    if (!meta) return;
+    alert(meta.note + "\n\n" + meta.disclaimer);
+  }
+
+  // ---------- GPS ----------
+
+  function onLocateClick() {
+    if (!state.watching) {
+      startWatch();
+    } else if (state.myPosition && map) {
+      map.setView([state.myPosition.lat, state.myPosition.lon], Math.max(map.getZoom(), 13));
+    }
+  }
+
+  function startWatch() {
+    if (!("geolocation" in navigator)) {
+      setStatus("Geolocation isn't available on this device/browser.", true);
+      return;
+    }
+    state.watching = true;
+    el.locateBtn.classList.add("active");
+    watchId = navigator.geolocation.watchPosition(onGpsPosition, onGpsError, {
+      enableHighAccuracy: true,
+      maximumAge: 5000,
+      timeout: 15000,
+    });
+  }
+
+  function onGpsPosition(pos) {
+    state.myPosition = {
+      lat: pos.coords.latitude,
+      lon: pos.coords.longitude,
+      accuracy: pos.coords.accuracy,
+    };
+    renderGpsMarker();
+    if (!state.gpsCentered && map) {
+      state.gpsCentered = true;
+      map.setView([state.myPosition.lat, state.myPosition.lon], 13);
+    }
+  }
+
+  function onGpsError(err) {
+    state.watching = false;
+    el.locateBtn.classList.remove("active");
+    setStatus("Location error: " + err.message, true);
+  }
+
+  function renderGpsMarker() {
+    ensureMap();
+    if (!map || !gpsLayer || !state.myPosition) return;
+    gpsLayer.clearLayers();
+    const { lat, lon, accuracy } = state.myPosition;
+    if (accuracy) {
+      L.circle([lat, lon], { radius: accuracy, color: GPS_COLOR, weight: 1, fillColor: GPS_COLOR, fillOpacity: 0.12 }).addTo(gpsLayer);
+    }
+    L.circleMarker([lat, lon], { radius: 7, color: "#fff", weight: 2, fillColor: GPS_COLOR, fillOpacity: 1 }).addTo(gpsLayer);
+  }
+
+  function getOneShotPosition() {
+    return new Promise((resolve, reject) => {
+      if (!("geolocation" in navigator)) {
+        reject(new Error("not supported"));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, accuracy: pos.coords.accuracy }),
+        (err) => reject(err),
+        { enableHighAccuracy: true, timeout: 12000 }
+      );
+    });
+  }
+
+  async function setStartFromGps() {
+    if (state.course.length === 0) {
+      setStatus("Add a start mark first, then tap Set Start.", true);
+      return;
+    }
+    let position = state.myPosition;
+    if (!position) {
+      setStatus("Getting GPS fix…");
+      try {
+        position = await getOneShotPosition();
+      } catch (err) {
+        const manual = prompt("Couldn't get GPS (" + err.message + "). Enter start position as \"lat,lon\":");
+        if (!manual) {
+          setStatus("Start position not set.", true);
+          return;
+        }
+        const parts = manual.split(",").map((s) => parseFloat(s.trim()));
+        if (parts.length !== 2 || parts.some(Number.isNaN)) {
+          setStatus("Couldn't parse that position.", true);
+          return;
+        }
+        position = { lat: parts[0], lon: parts[1] };
+      }
+    }
+
+    const startId = state.course[0].mark.id;
+    let count = 0;
+    state.course.forEach((entry) => {
+      if (entry.mark.id === startId) {
+        entry.overrideLat = position.lat;
+        entry.overrideLon = position.lon;
+        count++;
+      }
+    });
+    const acc = position.accuracy ? " (±" + Math.round(position.accuracy) + "m)" : "";
+    setStatus("Start set from GPS" + acc + " — applied to " + count + " mark" + (count === 1 ? "" : "s") + ".");
+    if (state.committed) renderResults();
   }
 })();

@@ -1,22 +1,25 @@
 # Fawn's Mark Plotter
 
-A static web app for Massachusetts Bay racing: pick your yacht club and
-tonight's course, and it plots the marks on a chart and gives you the
-compass heading and distance for every leg.
+A static web app for Massachusetts Bay racing, built for one-handed use on a
+phone at the helm: pick your yacht club and tonight's course, and it plots
+the marks on a full-screen map and gives you the compass heading and
+distance for every leg.
 
 ## How it works
 
-1. Pick your **Yacht Club** (BYC, EYC, CYC, JYC).
+1. Pick your **Yacht Club** (BYC, EYC, CYC, JYC) in the bottom sheet.
 2. BYC and JYC run their own club-specific mark list for weeknight racing
    (BYC Wednesday Night, JYC Thursday Night); pick that or "weekend /
    regatta" to use the shared **MBSA Standard Rounding Marks** (Lists A, B,
    C) that all four clubs use for regattas.
-3. Build the course by adding marks in order (repeats allowed, e.g. a
-   windward mark sailed twice). Portable marks (start/finish pins, windward
-   marks set by the Race Committee) have no fixed position — you can
-   optionally type in tonight's RC-set lat/lon to include that leg.
-4. The app plots the course on a map and lists the distance and true
-   (and optionally magnetic) heading for every leg.
+3. Build the course by typing or picking marks in order (repeats allowed,
+   e.g. a windward mark sailed twice) — each one becomes a chip.
+4. Tap **📍** to show your live GPS position on the map, and **🚩 Set Start**
+   to pin tonight's actual start-line position from your GPS fix (applied to
+   every occurrence of that mark, so a shared start/finish pin gets both).
+5. Tap **Set Course** to plot it: the sheet collapses to a full-screen map
+   with a swipeable strip of leg cards (heading + distance) above the handle.
+   Tap the handle any time to reopen and edit the course.
 
 **Always confirm marks and the course against the official Sailing
 Instructions and Race Committee signals before racing.**
