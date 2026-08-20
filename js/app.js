@@ -3,6 +3,7 @@
 
   const EARTH_RADIUS_NM = 3440.065;
   const GPS_COLOR = "#1a73e8";
+  const SEPARATOR_RE = /[\s,;>→-]+/;
 
   const state = {
     data: null,
@@ -81,6 +82,16 @@
     el.markInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
+        if (state.startPickMode) {
+          const mark = resolveMark(el.markInput.value);
+          if (mark) {
+            finishPickStartFromMark(mark);
+          } else {
+            setStatus("No charted mark found for “" + el.markInput.value + "”.", true);
+            el.markInput.select();
+          }
+          return;
+        }
         addMarkToCourse();
       } else if (e.key === "Escape") {
         cancelStartPickMode();
@@ -180,10 +191,16 @@
 
   // ---------- Course building ----------
 
+  function resolveMarkById(rawInput) {
+    const raw = (rawInput || "").trim();
+    if (!raw) return null;
+    return currentMarks().find((m) => m.id.toLowerCase() === raw.toLowerCase()) || null;
+  }
+
   function resolveMark(rawInput) {
     const raw = (rawInput || "").trim();
     if (!raw) return null;
-    const byId = currentMarks().find((m) => m.id.toLowerCase() === raw.toLowerCase());
+    const byId = resolveMarkById(raw);
     if (byId) return byId;
     const lower = raw.toLowerCase();
     const nameMatches = currentMarks().filter((m) => m.name.toLowerCase().includes(lower));
@@ -191,22 +208,91 @@
     return null;
   }
 
-  function addMarkToCourse() {
-    const mark = resolveMark(el.markInput.value);
-    if (!mark) {
-      setStatus("No mark found for “" + el.markInput.value + "”.", true);
-      el.markInput.select();
-      return;
+  // Split a whole-course string into individual mark tokens. Accepts
+  // whitespace, commas, semicolons, hyphens, ">" or "→" as separators in any
+  // mix (e.g. "A H F G", "A,H,F,G", "A-H-F-G"). With no separators at all
+  // (e.g. "AHFG"), greedily match known mark IDs longest-first so this also
+  // works for lists with multi-character IDs (MBSA's "21", "1DL", etc.), not
+  // just single-letter club lists.
+  function splitMarkTokens(rawInput) {
+    const trimmed = (rawInput || "").trim();
+    if (!trimmed) return [];
+    if (SEPARATOR_RE.test(trimmed)) {
+      return trimmed.split(SEPARATOR_RE).map((s) => s.trim()).filter(Boolean);
     }
-    addMarkObject(mark);
+    return greedySplitConcatenated(trimmed);
+  }
+
+  function greedySplitConcatenated(raw) {
+    const ids = currentMarks().map((m) => m.id).sort((a, b) => b.length - a.length);
+    const upper = raw.toUpperCase();
+    const tokens = [];
+    let i = 0;
+    while (i < upper.length) {
+      const match = ids.find((id) => upper.startsWith(id.toUpperCase(), i));
+      if (!match) return [raw]; // can't fully tokenize — let the caller's error path handle it
+      tokens.push(match);
+      i += match.length;
+    }
+    return tokens;
+  }
+
+  function pushMarkToCourse(mark) {
+    state.course.push({ uid: ++uidCounter, mark: mark, overrideLat: null, overrideLon: null });
   }
 
   function addMarkObject(mark) {
-    state.course.push({ uid: ++uidCounter, mark: mark, overrideLat: null, overrideLon: null });
+    pushMarkToCourse(mark);
     el.markInput.value = "";
     hideSuggestions();
     el.markInput.focus();
     setStatus("");
+    renderChips();
+  }
+
+  function addMarkToCourse() {
+    const tokens = splitMarkTokens(el.markInput.value);
+    if (tokens.length === 0) return;
+
+    if (tokens.length === 1) {
+      const mark = resolveMark(tokens[0]);
+      if (!mark) {
+        setStatus("No mark found for “" + tokens[0] + "”.", true);
+        el.markInput.select();
+        return;
+      }
+      addMarkObject(mark);
+      return;
+    }
+
+    // Multiple marks in one string: resolve each token against exact mark
+    // IDs only (not the fuzzy name search) and require all of them to
+    // resolve before adding any, so a typo doesn't leave a half-built
+    // course. ID-only avoids misreading a full multi-word mark name, like
+    // "Tinkers Gong", as two separate marks — if the tokens don't all
+    // resolve as IDs, fall back to searching the whole string as one name.
+    const resolved = [];
+    const unresolved = [];
+    tokens.forEach((t) => {
+      const mark = resolveMarkById(t);
+      if (mark) resolved.push(mark);
+      else unresolved.push(t);
+    });
+    if (unresolved.length > 0) {
+      const wholeMatch = resolveMark(el.markInput.value);
+      if (wholeMatch) {
+        addMarkObject(wholeMatch);
+        return;
+      }
+      setStatus("No mark found for: " + unresolved.join(", "), true);
+      el.markInput.select();
+      return;
+    }
+    resolved.forEach(pushMarkToCourse);
+    el.markInput.value = "";
+    hideSuggestions();
+    el.markInput.focus();
+    setStatus("Added " + resolved.length + " marks: " + resolved.map((m) => m.label).join("-"));
     renderChips();
   }
 
