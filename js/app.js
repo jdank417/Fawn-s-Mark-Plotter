@@ -310,7 +310,7 @@
     const code = currentClubCode();
     const club = currentClub();
     if (!code || !club) return;
-    el.rcBurgee.innerHTML = burgeeSvg(code, 34, 23);
+    el.rcBurgee.innerHTML = burgeeSvg(code, 28, 19);
     el.rcBurgee.title = burgeeTitle(code, club.name);
     el.rcBurgeeCaption.textContent = club.name.replace(/ Yacht Club$/, "");
   }
