@@ -14,6 +14,8 @@
     watching: false,
     gpsCentered: false,
     startPickMode: false,
+    legsData: [], // [{ legIndex, fromLabel, toLabel, toMark, distNm, trueHdg, magHdg, missing }]
+    currentLegIndex: null,
   };
 
   let uidCounter = 0;
@@ -21,6 +23,8 @@
   let courseLayer = null;
   let gpsLayer = null;
   let watchId = null;
+  let legLayers = []; // parallel to legsData: [{ polyline, arrow, targetMarker } | null]
+  let markerByIndex = []; // parallel to state.course / mapPoints: [L.Marker | null]
 
   const el = {
     clubSelect: document.getElementById("club-select"),
@@ -46,6 +50,13 @@
     legStrip: document.getElementById("leg-strip"),
     infoBtn: document.getElementById("info-btn"),
     locateBtn: document.getElementById("locate-btn"),
+    legNav: document.getElementById("leg-nav"),
+    legPrevBtn: document.getElementById("leg-prev-btn"),
+    legNextBtn: document.getElementById("leg-next-btn"),
+    legNavStep: document.getElementById("leg-nav-step"),
+    legNavTargetBadge: document.getElementById("leg-nav-target-badge"),
+    legNavHeading: document.getElementById("leg-nav-heading"),
+    legNavDist: document.getElementById("leg-nav-dist"),
   };
 
   fetch("data/marks.json")
@@ -95,6 +106,14 @@
     el.sheetToggle.addEventListener("click", toggleSheet);
     el.infoBtn.addEventListener("click", showInfo);
     el.locateBtn.addEventListener("click", onLocateClick);
+
+    el.legPrevBtn.addEventListener("click", () => setCurrentLeg((state.currentLegIndex ?? 0) - 1, { pan: true }));
+    el.legNextBtn.addEventListener("click", () => setCurrentLeg((state.currentLegIndex ?? 0) + 1, { pan: true }));
+    el.legStrip.addEventListener("click", (e) => {
+      const card = e.target.closest(".leg-card");
+      if (!card || card.dataset.legIndex == null) return;
+      setCurrentLeg(Number(card.dataset.legIndex), { pan: true });
+    });
 
     onClubChange();
     ensureMap();
@@ -310,6 +329,9 @@
   function hideLegStrip() {
     el.legStrip.hidden = true;
     el.legStrip.innerHTML = "";
+    state.legsData = [];
+    state.currentLegIndex = null;
+    el.legNav.hidden = true;
   }
 
   // ---------- Commit course / compute results ----------
@@ -367,6 +389,7 @@
     const showMag = el.useMagnetic.checked;
     let totalNm = 0;
     const mapPoints = [];
+    const legsData = [];
 
     for (let i = 0; i < state.course.length; i++) {
       const entry = state.course[i];
@@ -378,14 +401,19 @@
       );
       if (i === 0) continue;
 
+      const legIndex = i - 1;
       const prev = resolvedPosition(state.course[i - 1]);
+      const fromLabel = state.course[i - 1].mark.label;
+      const toLabel = entry.mark.label;
       const card = document.createElement("div");
-      const route = state.course[i - 1].mark.label + " → " + entry.mark.label;
+      card.dataset.legIndex = String(legIndex);
+      const route = fromLabel + " → " + toLabel;
 
       if (!prev || !pos) {
         card.className = "leg-card leg-missing";
         card.innerHTML = "<div class='leg-route'>" + route + "</div><div class='leg-detail'>position unknown</div>";
         el.legStrip.appendChild(card);
+        legsData.push({ legIndex, fromLabel, toLabel, toMark: entry.mark, missing: true });
         continue;
       }
 
@@ -400,6 +428,7 @@
         "<div class='leg-route'>" + route + "</div>" +
         "<div class='leg-detail'>" + hdgText + " · " + dist.toFixed(2) + " nm</div>";
       el.legStrip.appendChild(card);
+      legsData.push({ legIndex, fromLabel, toLabel, toMark: entry.mark, distNm: dist, trueHdg, magHdg, missing: false });
     }
 
     const totalCard = document.createElement("div");
@@ -408,8 +437,47 @@
     el.legStrip.appendChild(totalCard);
 
     state.lastTotalNm = totalNm;
+    state.legsData = legsData;
     updateSheetToggleLabel();
     renderCourseOnMap(mapPoints);
+    setCurrentLeg(state.currentLegIndex ?? 0, { pan: false });
+  }
+
+  // Step-through leg navigator (the right-edge control on the map): moves
+  // through the course leg by leg, highlighting the target mark and its
+  // segment on the map and showing that leg's heading/distance.
+  function setCurrentLeg(idx, opts) {
+    if (!state.legsData || state.legsData.length === 0) {
+      el.legNav.hidden = true;
+      return;
+    }
+    el.legNav.hidden = false;
+    const clamped = Math.max(0, Math.min(idx, state.legsData.length - 1));
+    state.currentLegIndex = clamped;
+    const leg = state.legsData[clamped];
+
+    el.legNavStep.textContent = (clamped + 1) + " / " + state.legsData.length;
+    const colorInfo = classifyMarkColor(leg.toMark.govt_light, leg.toMark.portable);
+    el.legNavTargetBadge.textContent = leg.toLabel;
+    el.legNavTargetBadge.setAttribute("style", markBadgeStyleAttr(colorInfo));
+
+    if (leg.missing) {
+      el.legNavHeading.textContent = "—";
+      el.legNavDist.textContent = "position unknown";
+    } else {
+      const showMag = el.useMagnetic.checked;
+      el.legNavHeading.textContent = showMag ? fmtHeading(leg.magHdg) + "M" : fmtHeading(leg.trueHdg) + "T";
+      el.legNavDist.textContent = leg.distNm.toFixed(2) + " nm";
+    }
+
+    el.legPrevBtn.disabled = clamped === 0;
+    el.legNextBtn.disabled = clamped === state.legsData.length - 1;
+
+    el.legStrip.querySelectorAll(".leg-card").forEach((card) => {
+      card.classList.toggle("active", Number(card.dataset.legIndex) === clamped);
+    });
+
+    highlightLeg(clamped, opts);
   }
 
   // ---------- Map ----------
@@ -520,39 +588,88 @@
       ensureMap();
       if (!map) return;
       courseLayer.clearLayers();
+      markerByIndex = [];
+      legLayers = [];
+
       const known = points.filter(Boolean);
       if (known.length === 0) return;
 
-      known.forEach((p) => {
+      points.forEach((p, idx) => {
+        if (!p) {
+          markerByIndex[idx] = null;
+          return;
+        }
         const colorInfo = classifyMarkColor(p.govtLight, p.portable);
         const colorWord = colorLabel(colorInfo);
-        L.marker([p.lat, p.lon], { icon: markBadgeIcon(p.label, colorInfo) })
+        markerByIndex[idx] = L.marker([p.lat, p.lon], { icon: markBadgeIcon(p.label, colorInfo) })
           .addTo(courseLayer)
           .bindTooltip(p.label + " — " + p.name + (colorWord ? " (" + colorWord + ")" : ""));
       });
 
-      if (known.length > 1) {
-        L.polyline(known.map((p) => [p.lat, p.lon]), {
+      // One segment + direction arrow per leg, only where both endpoints are
+      // known — kept in sync with state.legsData by index so the step-through
+      // nav can highlight the right one. A leg with an unresolved endpoint
+      // (e.g. an unplaced portable mark) simply has no segment, rather than
+      // drawing a misleading line across the gap.
+      for (let i = 0; i < points.length - 1; i++) {
+        const a = points[i], b = points[i + 1];
+        if (!a || !b) {
+          legLayers[i] = null;
+          continue;
+        }
+        const bearing = initialBearing(a.lat, a.lon, b.lat, b.lon);
+        const polyline = L.polyline([[a.lat, a.lon], [b.lat, b.lon]], {
           color: "#1d6fa5",
           weight: 3,
           dashArray: "6 4",
         }).addTo(courseLayer);
-
-        // Direction-of-travel arrow at the midpoint of each leg.
-        for (let i = 1; i < known.length; i++) {
-          const a = known[i - 1], b = known[i];
-          const bearing = initialBearing(a.lat, a.lon, b.lat, b.lon);
-          L.marker([(a.lat + b.lat) / 2, (a.lon + b.lon) / 2], {
-            icon: arrowIcon(bearing),
-            interactive: false,
-            keyboard: false,
-          }).addTo(courseLayer);
-        }
+        const arrow = L.marker([(a.lat + b.lat) / 2, (a.lon + b.lon) / 2], {
+          icon: arrowIcon(bearing),
+          interactive: false,
+          keyboard: false,
+        }).addTo(courseLayer);
+        legLayers[i] = { polyline, arrow, targetMarker: markerByIndex[i + 1] };
       }
+
       const bounds = L.latLngBounds(known.map((p) => [p.lat, p.lon]));
       map.fitBounds(bounds.pad(0.3));
     } catch (err) {
       console.error("Map rendering failed:", err);
+    }
+  }
+
+  function setMarkerActive(marker, active) {
+    const root = marker && marker.getElement && marker.getElement();
+    const badge = root && root.querySelector(".mark-badge");
+    if (badge) badge.classList.toggle("mark-active", active);
+  }
+
+  // Highlight the leg at legIndex on the map: bold/bright segment + arrow,
+  // a ring around its target mark, everything else dimmed. Optionally pans
+  // the map to keep the target mark in view without changing zoom.
+  function highlightLeg(legIndex, opts) {
+    legLayers.forEach((layer, i) => {
+      if (!layer) return;
+      const isActive = i === legIndex;
+      layer.polyline.setStyle({
+        color: isActive ? "#ff5a1f" : "#1d6fa5",
+        weight: isActive ? 5 : 3,
+        dashArray: isActive ? null : "6 4",
+        opacity: isActive ? 1 : 0.55,
+      });
+      if (isActive && layer.polyline.bringToFront) layer.polyline.bringToFront();
+      const arrowRoot = layer.arrow.getElement && layer.arrow.getElement();
+      const arrowShape = arrowRoot && arrowRoot.querySelector(".course-arrow");
+      if (arrowShape) arrowShape.classList.toggle("arrow-active", isActive);
+    });
+
+    markerByIndex.forEach((marker) => setMarkerActive(marker, false));
+    const activeLayer = legLayers[legIndex];
+    if (activeLayer && activeLayer.targetMarker) {
+      setMarkerActive(activeLayer.targetMarker, true);
+      if (opts && opts.pan && map) {
+        map.panTo(activeLayer.targetMarker.getLatLng(), { animate: true });
+      }
     }
   }
 

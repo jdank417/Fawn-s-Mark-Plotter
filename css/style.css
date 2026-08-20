@@ -93,9 +93,14 @@ body {
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
 }
 
+.mark-badge.mark-active {
+  box-shadow: 0 0 0 4px rgba(255, 90, 31, 0.55), 0 1px 5px rgba(0, 0, 0, 0.4);
+}
+
 /* Direction-of-travel arrow placed at each leg's midpoint, rotated to the
    leg's true bearing. Dark fill with a white halo so it stays legible over
-   any tile color. */
+   any tile color. Rotation is set inline by JS, so active/inactive styling
+   below only touches border size/color and the drop-shadow, never transform. */
 .course-arrow {
   width: 0;
   height: 0;
@@ -104,6 +109,80 @@ body {
   border-right: 6px solid transparent;
   border-bottom: 11px solid #17222c;
   filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 2px #fff);
+}
+
+.course-arrow.arrow-active {
+  border-left-width: 8px;
+  border-right-width: 8px;
+  border-bottom-width: 16px;
+  border-bottom-color: #ff5a1f;
+  filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 2px #fff) drop-shadow(0 0 4px #ff5a1f);
+}
+
+/* Right-edge step-through leg navigator */
+.leg-nav {
+  position: fixed;
+  right: calc(0.75rem + env(safe-area-inset-right));
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--panel-bg-translucent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 0.55rem 0.5rem 0.65rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  width: 4.75rem;
+}
+
+.leg-nav-btn {
+  width: 2.3rem;
+  height: 2.3rem;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--panel-bg);
+  color: var(--text);
+  font-size: 1.1rem;
+  line-height: 1;
+  min-height: auto;
+  padding: 0;
+}
+
+.leg-nav-btn:disabled {
+  opacity: 0.3;
+}
+
+.leg-nav-info {
+  text-align: center;
+}
+
+.leg-nav-step {
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+
+.leg-nav-badge.mark-badge {
+  width: 34px;
+  height: 34px;
+  font-size: 1rem;
+  margin: 0 auto;
+}
+
+.leg-nav-heading {
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin-top: 0.35rem;
+}
+
+.leg-nav-dist {
+  font-size: 0.72rem;
+  color: var(--muted);
 }
 
 /* Leaflet's default zoom control, restyled to sit above the bottom sheet
@@ -461,6 +540,14 @@ select.compact, input[type="text"], input[type="number"], button {
   border-radius: 10px;
   padding: 0.45rem 0.7rem;
   min-width: 8.5rem;
+  cursor: pointer;
+}
+
+.leg-card.active {
+  border-color: var(--accent);
+  border-width: 2px;
+  padding: 0.4rem 0.65rem;
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
 .leg-card .leg-route {
