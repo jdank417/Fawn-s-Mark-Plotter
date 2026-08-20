@@ -574,3 +574,274 @@ select.compact, input[type="text"], input[type="number"], button {
   padding: 0 0.4rem;
   white-space: nowrap;
 }
+
+/* ---------- Entry-mode toggle ---------- */
+
+.mode-row {
+  margin-bottom: 0.6rem;
+}
+
+.segmented {
+  display: flex;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.seg-btn {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.88rem;
+  padding: 0.45rem 0.3rem;
+  min-height: 2.4rem;
+}
+
+.seg-btn.is-on {
+  background: var(--accent);
+  color: #fff;
+}
+
+.beta-tag {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0 0.28rem;
+  margin-left: 0.2rem;
+}
+
+/* ---------- Committee boat board ----------
+   A stylized view of the RC boat's transom: you read the course board the
+   same way you would on the water, and the green flag means starboard
+   roundings. */
+
+.rc-boat {
+  margin: 0.2rem 0 0.6rem;
+}
+
+.rc-hull {
+  background: linear-gradient(180deg, var(--chip-bg), var(--panel-bg));
+  border: 1px solid var(--border);
+  border-radius: 10px 10px 22px 22px / 10px 10px 40px 40px;
+  padding: 0.5rem 0.7rem 0.9rem;
+}
+
+.rc-hull-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.rc-boat-name {
+  margin-left: auto;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+}
+
+.rc-flag {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem 0.2rem 0.35rem;
+  min-height: 2rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.rc-flag-cloth {
+  width: 18px;
+  height: 13px;
+  border-radius: 2px;
+  background: var(--border);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
+.rc-flag[aria-pressed="true"] {
+  border-color: var(--buoy-green);
+  color: var(--buoy-green);
+}
+
+.rc-flag[aria-pressed="true"] .rc-flag-cloth {
+  background: var(--buoy-green);
+}
+
+.rc-board {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  background: #14202b;
+  border-radius: 7px;
+  padding: 0.5rem;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+
+.rc-slot {
+  flex: none;
+  width: 3.1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.rc-slot-order {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #7b8b99;
+}
+
+.rc-slot-input {
+  width: 100%;
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: 800;
+  font-size: 1.05rem;
+  padding: 0.3rem 0.1rem;
+  min-height: 2.3rem;
+  background: #f7f4e8;
+  color: #14202b;
+  border: 1px solid #2c3d4d;
+  border-radius: 4px;
+}
+
+.rc-slot-input::placeholder {
+  color: #a8a08c;
+  font-weight: 600;
+}
+
+.rc-slot.is-invalid .rc-slot-input {
+  border-color: var(--buoy-red);
+  box-shadow: 0 0 0 2px rgba(208, 32, 31, 0.4);
+}
+
+.rc-slot-flag {
+  width: 100%;
+  min-height: 1.6rem;
+  padding: 0.1rem;
+  border-radius: 4px;
+  border: 1px solid #2c3d4d;
+  background: #22323f;
+  color: #cfe0ee;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.rc-slot-flag[data-rounding="S"] {
+  background: var(--buoy-green);
+  border-color: var(--buoy-green);
+  color: #fff;
+}
+
+.rc-slot-flag[data-rounding="P"] {
+  background: var(--buoy-red);
+  border-color: var(--buoy-red);
+  color: #fff;
+}
+
+.rc-waterline {
+  height: 6px;
+  margin: 0 0.6rem;
+  border-radius: 0 0 12px 12px;
+  background: linear-gradient(180deg, rgba(29, 111, 165, 0.45), transparent);
+}
+
+/* ---------- Rounding indicators ---------- */
+
+.round-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.05rem;
+  height: 1.05rem;
+  padding: 0 0.2rem;
+  border-radius: 3px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  color: #fff;
+  vertical-align: middle;
+}
+
+.round-tag.round-S { background: var(--buoy-green); }
+.round-tag.round-P { background: var(--buoy-red); }
+
+.chip .round-tag {
+  margin-left: 0.1rem;
+}
+
+.mark-badge .badge-round {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  border: 1.5px solid #fff;
+  font-size: 0.5rem;
+  font-weight: 800;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.mark-badge { position: relative; }
+.badge-round.round-S { background: var(--buoy-green); }
+.badge-round.round-P { background: var(--buoy-red); }
+
+.leg-nav-round {
+  font-size: 0.66rem;
+  font-weight: 800;
+  margin-top: 0.2rem;
+}
+
+.leg-nav-round.round-text-S { color: var(--buoy-green); }
+.leg-nav-round.round-text-P { color: var(--buoy-red); }
+
+/* A rounding that comes from the green flag rather than the mark's own
+   setting is outlined instead of filled, so "following the flag" reads
+   differently from a per-mark override. */
+.rc-slot-flag[data-inherited="true"][data-rounding="S"] {
+  background: transparent;
+  color: var(--buoy-green);
+  border-color: var(--buoy-green);
+  border-style: dashed;
+}
+
+.rc-slot-flag[data-inherited="true"][data-rounding="P"] {
+  background: transparent;
+  color: var(--buoy-red);
+  border-color: var(--buoy-red);
+  border-style: dashed;
+}
+
+.round-tag.round-unset {
+  background: transparent;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  font-weight: 700;
+}
+
+.round-tag.round-inherited {
+  background: transparent;
+  border: 1px dashed currentColor;
+}
+
+.round-tag.round-inherited.round-S { color: var(--buoy-green); }
+.round-tag.round-inherited.round-P { color: var(--buoy-red); }
