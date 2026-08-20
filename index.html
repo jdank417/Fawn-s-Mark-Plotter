@@ -27,6 +27,7 @@
       <div class="mark-badge leg-nav-badge" id="leg-nav-target-badge">A</div>
       <div class="leg-nav-heading" id="leg-nav-heading">000°T</div>
       <div class="leg-nav-dist" id="leg-nav-dist">0.00 nm</div>
+      <div class="leg-nav-round" id="leg-nav-round" hidden></div>
     </div>
     <button type="button" id="leg-next-btn" class="leg-nav-btn" aria-label="Next leg">▼</button>
   </div>
@@ -52,12 +53,38 @@
     </div>
     <p class="hint" id="list-hint"></p>
 
-    <div class="row mark-input-row">
-      <div class="mark-input-wrap">
-        <input type="text" id="mark-input" placeholder="Type a mark, or a whole course: A H F G" autocomplete="off" autocapitalize="characters">
-        <ul id="mark-suggestions" class="suggestions" hidden></ul>
+    <div class="row mode-row">
+      <div class="segmented" role="tablist" aria-label="Course entry mode">
+        <button type="button" id="mode-classic-btn" class="seg-btn is-on" role="tab" aria-selected="true">Classic</button>
+        <button type="button" id="mode-committee-btn" class="seg-btn" role="tab" aria-selected="false">Committee Boat <span class="beta-tag">beta</span></button>
       </div>
-      <button type="button" id="add-mark-btn" class="square-btn">+</button>
+    </div>
+
+    <div id="classic-entry">
+      <div class="row mark-input-row">
+        <div class="mark-input-wrap">
+          <input type="text" id="mark-input" placeholder="Type a mark, or a whole course: A H F G" autocomplete="off" autocapitalize="characters">
+          <ul id="mark-suggestions" class="suggestions" hidden></ul>
+        </div>
+        <button type="button" id="add-mark-btn" class="square-btn">+</button>
+      </div>
+    </div>
+
+    <div id="committee-entry" hidden>
+      <div class="rc-boat">
+        <div class="rc-hull">
+          <div class="rc-hull-top">
+            <button type="button" id="rc-green-flag" class="rc-flag" aria-pressed="false">
+              <span class="rc-flag-cloth"></span>
+              <span class="rc-flag-label">Green flag</span>
+            </button>
+            <div class="rc-boat-name">RACE COMMITTEE</div>
+          </div>
+          <div class="rc-board" id="rc-board"></div>
+        </div>
+        <div class="rc-waterline"></div>
+      </div>
+      <p class="hint" id="rc-hint"></p>
     </div>
 
     <div id="course-chips" class="chips"></div>
