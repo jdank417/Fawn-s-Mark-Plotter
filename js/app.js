@@ -22,6 +22,8 @@
     // "S" = leave marks to starboard, "P" = leave marks to port. Individual
     // marks can override this via their own slot flag.
     defaultRounding: null,
+    // Code flag T flown by the RC: sail the course twice.
+    twiceAround: false,
   };
 
   let uidCounter = 0;
@@ -70,6 +72,8 @@
     committeeEntry: document.getElementById("committee-entry"),
     rcBoard: document.getElementById("rc-board"),
     rcGreenFlag: document.getElementById("rc-green-flag"),
+    rcGreenCaption: document.getElementById("rc-green-caption"),
+    rcTwiceFlag: document.getElementById("rc-twice-flag"),
     rcHint: document.getElementById("rc-hint"),
   };
 
@@ -113,12 +117,27 @@
     });
     el.markInput.addEventListener("input", () => showSuggestions(el.markInput.value));
     el.markInput.addEventListener("focus", () => showSuggestions(el.markInput.value));
-    el.suggestions.addEventListener("pointerdown", onSuggestionPointerDown);
-    document.addEventListener("pointerdown", (e) => {
-      if (!el.markInputWrap.contains(e.target)) {
-        hideSuggestions();
-        cancelStartPickMode();
-      }
+    // Also reopen on tap: once the input already has focus no focus event
+    // fires, so tapping it again would otherwise leave the list closed.
+    el.markInput.addEventListener("click", () => showSuggestions(el.markInput.value));
+    // Selection fires on click, not pointerdown: on a touch screen a scroll
+    // gesture begins with a pointerdown on a list item, so selecting there
+    // made the list impossible to scroll without picking something.
+    el.suggestions.addEventListener("click", onSuggestionClick);
+    // Keep the input focused when picking with a mouse (mousedown would
+    // otherwise blur it and close the list before the click lands). Touch
+    // scrolling is unaffected because this only suppresses the blur.
+    el.suggestions.addEventListener("mousedown", (e) => e.preventDefault());
+    // Dismiss on click rather than pointerdown: the list sits in the layout
+    // flow, so collapsing it on pointerdown shifted everything below it
+    // upward before the tap resolved, and taps landed on the wrong control.
+    document.addEventListener("click", (e) => {
+      if (el.markInputWrap.contains(e.target) || el.suggestions.contains(e.target)) return;
+      // The start buttons open the picker themselves; since this runs on the
+      // bubble phase it would otherwise close what they just opened.
+      if (e.target.closest("#mark-start-btn, #gps-start-btn")) return;
+      hideSuggestions();
+      cancelStartPickMode();
     });
 
     el.clearCourseBtn.addEventListener("click", clearCourse);
@@ -134,6 +153,12 @@
     el.modeClassicBtn.addEventListener("click", () => setEntryMode("classic"));
     el.modeCommitteeBtn.addEventListener("click", () => setEntryMode("committee"));
     el.rcGreenFlag.addEventListener("click", cycleGreenFlag);
+    el.rcTwiceFlag.addEventListener("click", toggleTwiceAround);
+
+    // Keep the overlay anchored if the sheet scrolls or the viewport changes.
+    const reanchor = () => { if (!el.suggestions.hidden) positionSuggestions(); };
+    document.getElementById("sheet-body").addEventListener("scroll", reanchor, { passive: true });
+    window.addEventListener("resize", reanchor);
 
     el.legPrevBtn.addEventListener("click", () => setCurrentLeg((state.currentLegIndex ?? 0) - 1, { pan: true }));
     el.legNextBtn.addEventListener("click", () => setCurrentLeg((state.currentLegIndex ?? 0) + 1, { pan: true }));
@@ -285,13 +310,20 @@
     return null;
   }
 
-  function addMarkObject(mark) {
+  // keepSuggestions leaves the list up after a pick, so a course can be
+  // built by tapping straight down it without reopening between marks.
+  function addMarkObject(mark, opts) {
     pushMarkToCourse(mark);
     el.markInput.value = "";
-    hideSuggestions();
-    el.markInput.focus();
     setStatus("");
     renderChips();
+    renderBoard();
+    if (opts && opts.keepSuggestions) {
+      showSuggestions("");
+    } else {
+      hideSuggestions();
+      el.markInput.focus();
+    }
   }
 
   function addMarkToCourse() {
@@ -371,16 +403,29 @@
       });
     }
     el.suggestions.hidden = false;
+    positionSuggestions();
   }
 
   function hideSuggestions() {
     el.suggestions.hidden = true;
   }
 
-  function onSuggestionPointerDown(e) {
+  // Anchor the overlay just above the input, growing upward over the map.
+  function positionSuggestions() {
+    const r = el.markInput.getBoundingClientRect();
+    if (r.width === 0) return; // input hidden (committee mode) — nothing to anchor to
+    const gap = 6;
+    const available = r.top - gap - 8;
+    el.suggestions.style.left = r.left + "px";
+    el.suggestions.style.width = r.width + "px";
+    el.suggestions.style.top = "auto";
+    el.suggestions.style.bottom = (window.innerHeight - r.top + gap) + "px";
+    el.suggestions.style.maxHeight = Math.max(140, Math.min(window.innerHeight * 0.5, available)) + "px";
+  }
+
+  function onSuggestionClick(e) {
     const li = e.target.closest("li[data-id]");
     if (!li) return;
-    e.preventDefault();
     const mark = currentMarks().find((m) => m.id === li.dataset.id);
     if (!mark) return;
 
@@ -388,7 +433,7 @@
       finishPickStartFromMark(mark);
       return;
     }
-    addMarkObject(mark);
+    addMarkObject(mark, { keepSuggestions: true });
   }
 
   function removeMark(uid) {
@@ -478,10 +523,10 @@
     }
   }
 
-  function greenFlagLabel() {
-    if (state.defaultRounding === "S") return "Green flag up — round to starboard";
-    if (state.defaultRounding === "P") return "No green flag — round to port";
-    return "No flag set — tap to signal";
+  function greenFlagCaption() {
+    if (state.defaultRounding === "S") return "Green — stbd";
+    if (state.defaultRounding === "P") return "Red — port";
+    return "No flag";
   }
 
   function renderGreenFlag() {
@@ -494,8 +539,16 @@
         : state.defaultRounding === "P" ? "var(--buoy-red)"
         : "";
     }
-    const label = el.rcGreenFlag.querySelector(".rc-flag-label");
-    if (label) label.textContent = greenFlagLabel();
+    el.rcGreenCaption.textContent = greenFlagCaption();
+    el.rcGreenFlag.title =
+      state.defaultRounding
+        ? "All marks: " + roundingWord(state.defaultRounding) + " — tap to change"
+        : "No rounding signalled — tap to set";
+
+    el.rcTwiceFlag.setAttribute("aria-pressed", String(state.twiceAround));
+    el.rcTwiceFlag.title = state.twiceAround
+      ? "Code flag T flying — sail the course twice"
+      : "Tap to fly code flag T (twice around)";
   }
 
   function cycleGreenFlag() {
@@ -503,6 +556,20 @@
     renderBoard();
     renderChips();
     if (state.committed) renderResults();
+  }
+
+  function toggleTwiceAround() {
+    state.twiceAround = !state.twiceAround;
+    renderBoard();
+    if (state.committed) renderResults();
+  }
+
+  // The sequence actually sailed. With code flag T up, the course repeats
+  // after the first mark — i.e. the start is passed once and everything
+  // after it is sailed twice.
+  function courseForLegs() {
+    if (!state.twiceAround || state.course.length < 2) return state.course;
+    return state.course.concat(state.course.slice(1));
   }
 
   function makeSlot(entry, index) {
@@ -618,9 +685,10 @@
     state.course.forEach((entry, idx) => el.rcBoard.appendChild(makeSlot(entry, idx)));
     el.rcBoard.appendChild(makeSlot(null, state.course.length));
 
-    el.rcHint.textContent = state.course.length
-      ? "Type the letters as they read on the board; tap a flag to set that mark's rounding."
-      : "Type the course letters into the board, left to right.";
+    const twiceNote = state.twiceAround ? " Flag T is up — the course is sailed twice." : "";
+    el.rcHint.textContent = (state.course.length
+      ? "Type the letters down the board in order; tap a mark's flag to set its rounding."
+      : "Type the course letters down the board, first mark at the top.") + twiceNote;
 
     if (opts && opts.focusNewSlot) {
       const newInput = el.rcBoard.querySelector('input[data-new-slot="true"]');
@@ -718,8 +786,9 @@
     const mapPoints = [];
     const legsData = [];
 
-    for (let i = 0; i < state.course.length; i++) {
-      const entry = state.course[i];
+    const sailed = courseForLegs();
+    for (let i = 0; i < sailed.length; i++) {
+      const entry = sailed[i];
       const pos = resolvedPosition(entry);
       mapPoints.push(
         pos
@@ -736,8 +805,8 @@
       if (i === 0) continue;
 
       const legIndex = i - 1;
-      const prev = resolvedPosition(state.course[i - 1]);
-      const fromLabel = state.course[i - 1].mark.label;
+      const prev = resolvedPosition(sailed[i - 1]);
+      const fromLabel = sailed[i - 1].mark.label;
       const toLabel = entry.mark.label;
       const rounding = effectiveRounding(entry);
       const card = document.createElement("div");
@@ -1107,8 +1176,33 @@
     return state.course.find((e) => resolvedPosition(e) == null) || state.course[0];
   }
 
+  // Setting a start position with nothing in the course used to just error
+  // out, which read as the button being broken. Instead, put a start mark on
+  // the course first: the list's own portable start if it has one (BYC "F",
+  // JYC "E"), otherwise a generic one so any list can still take a start.
+  function ensureStartEntry() {
+    if (state.course.length > 0) return findStartTargetEntry();
+
+    const ownStart = currentMarks().find((m) => m.portable && /start/i.test(m.name));
+    const startMark = ownStart || {
+      id: "__START__",
+      label: "St",
+      name: "Start (your position)",
+      govt_light: null,
+      lat: null,
+      lon: null,
+      gov_number: null,
+      portable: true,
+      notes: null,
+    };
+    pushMarkToCourse(startMark);
+    renderChips();
+    renderBoard();
+    return state.course[0];
+  }
+
   function applyStartPosition(position, sourceLabel) {
-    const target = findStartTargetEntry();
+    const target = ensureStartEntry();
     const targetId = target.mark.id;
     let count = 0;
     state.course.forEach((entry) => {
@@ -1122,14 +1216,12 @@
       "Start (" + target.mark.label + ") set from " + sourceLabel +
       " — applied to " + count + " mark" + (count === 1 ? "" : "s") + "."
     );
+    renderChips();
+    renderBoard();
     if (state.committed) renderResults();
   }
 
   async function setStartFromGps() {
-    if (state.course.length === 0) {
-      setStatus("Add a start mark first, then tap GPS Start.", true);
-      return;
-    }
     let position = state.myPosition;
     if (!position) {
       setStatus("Getting GPS fix…");
@@ -1156,10 +1248,10 @@
   // ---------- Set Start from a charted (government) mark ----------
 
   function beginPickStartFromMark() {
-    if (state.course.length === 0) {
-      setStatus("Add a start mark first, then tap Mark Start.", true);
-      return;
-    }
+    // The picker types into the classic mark input, which is hidden in
+    // committee mode — without this the button appeared to do nothing.
+    if (state.entryMode !== "classic") setEntryMode("classic");
+    ensureStartEntry();
     state.startPickMode = true;
     el.markInputWrap.classList.add("picking");
     el.markInput.placeholder = "Tap a charted mark to use as the start…";
