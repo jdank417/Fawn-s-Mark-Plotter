@@ -12,6 +12,13 @@
   --chip-bg: #eaf2f7;
   --danger: #b3441e;
   --gps-blue: #1a73e8;
+  /* Real charted buoy colors — fixed regardless of app theme, since these
+     represent physical aid-to-navigation colors, not UI colors. */
+  --buoy-red: #d0201f;
+  --buoy-green: #167a3d;
+  --buoy-yellow: #e8b400;
+  --buoy-orange: #e2791f;
+  --buoy-white: #f4f4f4;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -86,8 +93,17 @@ body {
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
 }
 
-.mark-badge.start-badge {
-  background: var(--danger);
+/* Direction-of-travel arrow placed at each leg's midpoint, rotated to the
+   leg's true bearing. Dark fill with a white halo so it stays legible over
+   any tile color. */
+.course-arrow {
+  width: 0;
+  height: 0;
+  margin: 3px auto 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 11px solid #17222c;
+  filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 2px #fff);
 }
 
 /* Leaflet's default zoom control, restyled to sit above the bottom sheet
