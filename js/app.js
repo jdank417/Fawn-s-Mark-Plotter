@@ -97,6 +97,7 @@
     rcBurgeeCaption: document.getElementById("rc-burgee-caption"),
     infoPanel: document.getElementById("info-panel"),
     infoClose: document.getElementById("info-close"),
+    infoDone: document.getElementById("info-done"),
     legendColors: document.getElementById("legend-colors"),
     legendSymbols: document.getElementById("legend-symbols"),
     infoNote: document.getElementById("info-note"),
@@ -179,6 +180,7 @@
     el.sheetToggle.addEventListener("click", toggleSheet);
     el.infoBtn.addEventListener("click", showInfo);
     el.infoClose.addEventListener("click", hideInfo);
+    el.infoDone.addEventListener("click", hideInfo);
     el.infoPanel.addEventListener("click", (e) => {
       if (e.target === el.infoPanel) hideInfo();
     });
@@ -1571,7 +1573,7 @@
        "Filled = set on that mark; dashed = following the green flag"],
       ["<span class='legend-arrow'><span class='course-arrow'></span></span>",
        "Direction of travel along each leg"],
-      ["<span class='legend-line'></span>" + burgeeSvg(currentClubCode() || "BYC", 26, 17),
+      ["<span class='legend-line'></span>" + burgeeSvg("EYC", 26, 17),
        "Start line, square to the first leg, with the committee boat at its outer end"],
       ["<span class='legend-gps'></span>", "Your GPS position, with its accuracy circle"],
       ["<span class='legend-leg'></span>", "A leg of the course"],
@@ -1590,6 +1592,10 @@
     if (!state.data) return;
     renderLegend();
     el.infoPanel.hidden = false;
+    // Always open at the top — otherwise a reopen lands wherever it was left,
+    // which looks like the first section has been cut off.
+    const body = el.infoPanel.querySelector(".info-body");
+    if (body) body.scrollTop = 0;
   }
 
   function hideInfo() {

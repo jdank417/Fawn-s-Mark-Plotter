@@ -1132,13 +1132,21 @@ select,
   justify-content: center;
   background: rgba(8, 16, 24, 0.55);
   backdrop-filter: blur(2px);
-  padding-top: env(safe-area-inset-top);
+  /* Reserved headroom above the card. It does double duty: it keeps the title
+     and the ✕ clear of the notch and the browser's own chrome, and it leaves a
+     strip of backdrop that can be tapped to dismiss even when the key is at
+     its tallest. */
+  padding-top: calc(env(safe-area-inset-top) + 3.25rem);
+  overflow: hidden;
 }
 
 .info-card {
   width: 100%;
   max-width: 34rem;
-  max-height: 88vh;
+  /* Percentage of the panel's padded box, never a vh unit: on iOS Safari vh
+     measures the viewport with the browser chrome hidden, so a vh-capped card
+     anchored to the bottom pushed its own header off the top of the screen. */
+  max-height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--panel-bg);
@@ -1156,7 +1164,7 @@ select,
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.7rem 1rem;
+  padding: 0.85rem 1rem 0.7rem;
   border-bottom: 1px solid var(--border);
 }
 
@@ -1182,9 +1190,24 @@ select,
 .info-close:active { background: var(--border); }
 
 .info-body {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 0.75rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  padding: 0.75rem 1rem 1rem;
+}
+
+/* A second, unmissable way out. The ✕ is small and lives at the top of a
+   sheet you may have scrolled down; this stays put under your thumb. */
+.info-foot {
+  flex: none;
+  padding: 0.6rem 1rem calc(0.6rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: var(--panel-bg);
+}
+
+.info-foot .primary-btn {
+  width: 100%;
 }
 
 .info-body h3 {
