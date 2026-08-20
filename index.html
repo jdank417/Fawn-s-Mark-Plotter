@@ -42,8 +42,10 @@
     <p class="hint" id="list-hint"></p>
 
     <div class="row mark-input-row">
-      <input type="text" id="mark-input" list="mark-options" placeholder="Type or pick a mark (e.g. A)" autocomplete="off" autocapitalize="characters">
-      <datalist id="mark-options"></datalist>
+      <div class="mark-input-wrap">
+        <input type="text" id="mark-input" placeholder="Type or tap to pick a mark" autocomplete="off" autocapitalize="characters">
+        <ul id="mark-suggestions" class="suggestions" hidden></ul>
+      </div>
       <button type="button" id="add-mark-btn" class="square-btn">+</button>
     </div>
 
@@ -58,7 +60,10 @@
     </div>
 
     <div class="row action-row">
-      <button type="button" id="set-start-btn" class="secondary-btn">🚩 Set Start (GPS)</button>
+      <button type="button" id="gps-start-btn" class="secondary-btn">📍 GPS Start</button>
+      <button type="button" id="mark-start-btn" class="secondary-btn">⚓ Mark Start</button>
+    </div>
+    <div class="row action-row">
       <button type="button" id="set-course-btn" class="primary-btn">Set Course ▶</button>
     </div>
     <p class="hint" id="build-status"></p>
