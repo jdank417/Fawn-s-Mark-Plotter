@@ -31,6 +31,8 @@
   let courseLayer = null;
   let gpsLayer = null;
   let watchId = null;
+  let lastGeometryKey = null; // skips map teardown when only text changed
+  let lastPositionKey = null; // skips re-fitting the view when nothing moved
   let legLayers = []; // parallel to legsData: [{ polyline, arrow, targetMarker } | null]
   let markerByIndex = []; // parallel to state.course / mapPoints: [L.Marker | null]
 
@@ -145,7 +147,11 @@
     el.gpsStartBtn.addEventListener("click", setStartFromGps);
     el.markStartBtn.addEventListener("click", beginPickStartFromMark);
     el.useMagnetic.addEventListener("change", () => { if (state.committed) renderResults(); });
-    el.variation.addEventListener("input", () => { if (state.committed) renderResults(); });
+    let variationTimer = null;
+    el.variation.addEventListener("input", () => {
+      clearTimeout(variationTimer);
+      variationTimer = setTimeout(() => { if (state.committed) renderResults(); }, 200);
+    });
     el.sheetToggle.addEventListener("click", toggleSheet);
     el.infoBtn.addEventListener("click", showInfo);
     el.locateBtn.addEventListener("click", onLocateClick);
@@ -245,10 +251,27 @@
     if (!raw) return null;
     const byId = resolveMarkById(raw);
     if (byId) return byId;
+    // Name search needs at least two characters. A single letter is a mark
+    // designation, not a search term: matching it against names let a letter
+    // that isn't used tonight resolve to an unrelated mark (e.g. "W" in MBSA
+    // List B has no such mark, but matches the name "Powers LG").
+    if (raw.length < 2) return null;
     const lower = raw.toLowerCase();
     const nameMatches = currentMarks().filter((m) => m.name.toLowerCase().includes(lower));
     if (nameMatches.length === 1) return nameMatches[0];
     return null;
+  }
+
+  // Rounding the same mark twice in a row isn't a real course, and it makes
+  // a zero-length leg that plots two markers on the same spot with a
+  // meaningless bearing — which reads as a missing leg.
+  function lastCourseMark() {
+    return state.course.length ? state.course[state.course.length - 1].mark : null;
+  }
+
+  function isRepeatOfLast(mark) {
+    const last = lastCourseMark();
+    return !!last && last.id === mark.id;
   }
 
   // Split a whole-course string into individual mark tokens. Accepts
@@ -313,6 +336,11 @@
   // keepSuggestions leaves the list up after a pick, so a course can be
   // built by tapping straight down it without reopening between marks.
   function addMarkObject(mark, opts) {
+    if (isRepeatOfLast(mark)) {
+      setStatus(mark.label + " is already the last mark.", true);
+      if (opts && opts.keepSuggestions) showSuggestions("");
+      return;
+    }
     pushMarkToCourse(mark);
     el.markInput.value = "";
     setStatus("");
@@ -364,6 +392,16 @@
       el.markInput.select();
       return;
     }
+    const repeat = resolved.find((m, i) => {
+      const prev = i === 0 ? lastCourseMark() : resolved[i - 1];
+      return prev && prev.id === m.id;
+    });
+    if (repeat) {
+      setStatus("“" + repeat.label + "” repeats back-to-back — check the course.", true);
+      el.markInput.select();
+      return;
+    }
+
     resolved.forEach(pushMarkToCourse);
     el.markInput.value = "";
     hideSuggestions();
@@ -454,6 +492,7 @@
   }
 
   function renderChips() {
+    const priorScroll = el.courseChips.scrollLeft;
     el.courseChips.innerHTML = "";
     if (state.course.length === 0) {
       const empty = document.createElement("p");
@@ -498,6 +537,7 @@
       chip.appendChild(removeBtn);
       el.courseChips.appendChild(chip);
     });
+    el.courseChips.scrollLeft = priorScroll;
   }
 
   // ---------- Beta: committee-boat course board ----------
@@ -727,6 +767,17 @@
     state.legsData = [];
     state.currentLegIndex = null;
     el.legNav.hidden = true;
+    clearCourseFromMap();
+  }
+
+  // Clearing the course used to leave the old markers and track drawn on the
+  // map, so the plot no longer matched the course you were editing.
+  function clearCourseFromMap() {
+    lastGeometryKey = null;
+    lastPositionKey = null;
+    legLayers = [];
+    markerByIndex = [];
+    if (courseLayer) courseLayer.clearLayers();
   }
 
   // ---------- Commit course / compute results ----------
@@ -777,6 +828,9 @@
 
   function renderResults() {
     if (!state.committed) return;
+    // Re-rendering resets scroll to the left, which yanked the strip back to
+    // leg 1 whenever anything changed. Restore where the user had it.
+    const priorScroll = el.legStrip.scrollLeft;
     el.legStrip.innerHTML = "";
     el.legStrip.hidden = false;
 
@@ -822,6 +876,19 @@
       }
 
       const dist = haversineNm(prev.lat, prev.lon, pos.lat, pos.lon);
+
+      // Two marks resolving to the same spot give a zero-length leg whose
+      // bearing is meaningless — say so rather than printing a number that
+      // looks real.
+      if (dist < 0.005) {
+        card.className = "leg-card leg-missing";
+        card.innerHTML = "<div class='leg-route'>" + route + "</div>" +
+          "<div class='leg-detail'>same position</div>";
+        el.legStrip.appendChild(card);
+        legsData.push({ legIndex, fromLabel, toLabel, toMark: entry.mark, rounding, missing: true });
+        continue;
+      }
+
       const trueHdg = initialBearing(prev.lat, prev.lon, pos.lat, pos.lon);
       const magHdg = ((trueHdg - variation) % 360 + 360) % 360;
       totalNm += dist;
@@ -840,6 +907,7 @@
     totalCard.textContent = totalNm.toFixed(2) + " nm total";
     el.legStrip.appendChild(totalCard);
 
+    el.legStrip.scrollLeft = priorScroll;
     state.lastTotalNm = totalNm;
     state.legsData = legsData;
     updateSheetToggleLabel();
@@ -999,10 +1067,32 @@
     });
   }
 
+  function geometryKey(points) {
+    return JSON.stringify(points.map((p) => (p ? [p.label, p.lat, p.lon, p.rounding || ""] : null)));
+  }
+
+  function positionKey(points) {
+    return JSON.stringify(points.map((p) => (p ? [p.lat, p.lon] : null)));
+  }
+
   function renderCourseOnMap(points) {
     try {
       ensureMap();
       if (!map) return;
+
+      // Changing the heading display (magnetic toggle, variation) re-renders
+      // the results but not the geometry. Rebuilding the layers anyway made
+      // every marker flash and re-fit the map under you, which is most of
+      // what felt glitchy — so only rebuild when something actually moved.
+      const key = geometryKey(points);
+      if (key === lastGeometryKey) return;
+      // Re-fit the view only when marks actually moved — flipping a rounding
+      // flag redraws the badges but shouldn't yank the map out from under a
+      // view you've panned or zoomed yourself.
+      const positionsChanged = positionKey(points) !== lastPositionKey;
+      lastPositionKey = positionKey(points);
+      lastGeometryKey = key;
+
       courseLayer.clearLayers();
       markerByIndex = [];
       legLayers = [];
@@ -1052,8 +1142,10 @@
         legLayers[i] = { polyline, arrow, targetMarker: markerByIndex[i + 1] };
       }
 
-      const bounds = L.latLngBounds(known.map((p) => [p.lat, p.lon]));
-      map.fitBounds(bounds.pad(0.3));
+      if (positionsChanged) {
+        const bounds = L.latLngBounds(known.map((p) => [p.lat, p.lon]));
+        map.fitBounds(bounds.pad(0.3), { animate: false });
+      }
     } catch (err) {
       console.error("Map rendering failed:", err);
     }
@@ -1168,26 +1260,32 @@
     });
   }
 
-  // Which course entry actually needs a position: prefer the first one that
-  // doesn't resolve to any position yet (typically a portable start pin),
-  // even if it isn't literally the first mark in the course. Falls back to
-  // the first mark if everything already has a position.
+  // Which course entry a start position should attach to. Only ever a mark
+  // that has no charted position of its own: the RC-set pin wherever it sits
+  // in the course, or a leading portable mark. A charted government mark is
+  // never a candidate — overwriting its position would silently move a real
+  // buoy and change the course geometry.
   function findStartTargetEntry() {
-    return state.course.find((e) => resolvedPosition(e) == null) || state.course[0];
+    const pin = state.course.find((e) => e.mark.portable && resolvedPosition(e) == null);
+    if (pin) return pin;
+    const first = state.course[0];
+    if (first && (first.mark.portable || resolvedPosition(first) == null)) return first;
+    return null;
   }
 
-  // Setting a start position with nothing in the course used to just error
-  // out, which read as the button being broken. Instead, put a start mark on
-  // the course first: the list's own portable start if it has one (BYC "F",
-  // JYC "E"), otherwise a generic one so any list can still take a start.
+  // Give the start position something to attach to, inserting a start mark
+  // at the front of the course when there isn't already a suitable one. Uses
+  // the list's own portable start where it has one (BYC "F", JYC "E") so the
+  // course reads the way the club writes it.
   function ensureStartEntry() {
-    if (state.course.length > 0) return findStartTargetEntry();
+    const existing = findStartTargetEntry();
+    if (existing) return existing;
 
     const ownStart = currentMarks().find((m) => m.portable && /start/i.test(m.name));
     const startMark = ownStart || {
       id: "__START__",
       label: "St",
-      name: "Start (your position)",
+      name: "Start (set position)",
       govt_light: null,
       lat: null,
       lon: null,
@@ -1195,10 +1293,11 @@
       portable: true,
       notes: null,
     };
-    pushMarkToCourse(startMark);
+    const entry = { uid: ++uidCounter, mark: startMark, overrideLat: null, overrideLon: null, rounding: null };
+    state.course.unshift(entry);
     renderChips();
     renderBoard();
-    return state.course[0];
+    return entry;
   }
 
   function applyStartPosition(position, sourceLabel) {
