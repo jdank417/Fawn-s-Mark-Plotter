@@ -19,6 +19,17 @@
 
   <button type="button" id="info-btn" class="fab fab-top-left" title="About / data sources" aria-label="About">ⓘ</button>
   <button type="button" id="locate-btn" class="fab fab-top-right" title="Show my location" aria-label="Locate me">📍</button>
+
+  <div id="leg-nav" class="leg-nav" hidden>
+    <button type="button" id="leg-prev-btn" class="leg-nav-btn" aria-label="Previous leg">▲</button>
+    <div class="leg-nav-info">
+      <div class="leg-nav-step" id="leg-nav-step">1 / 1</div>
+      <div class="mark-badge leg-nav-badge" id="leg-nav-target-badge">A</div>
+      <div class="leg-nav-heading" id="leg-nav-heading">000°T</div>
+      <div class="leg-nav-dist" id="leg-nav-dist">0.00 nm</div>
+    </div>
+    <button type="button" id="leg-next-btn" class="leg-nav-btn" aria-label="Next leg">▼</button>
+  </div>
 </div>
 
 <div id="sheet" class="sheet">
