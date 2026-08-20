@@ -55,12 +55,12 @@
 
     <div class="row mode-row">
       <div class="segmented" role="tablist" aria-label="Course entry mode">
-        <button type="button" id="mode-classic-btn" class="seg-btn is-on" role="tab" aria-selected="true">Classic</button>
-        <button type="button" id="mode-committee-btn" class="seg-btn" role="tab" aria-selected="false">Committee Boat <span class="beta-tag">beta</span></button>
+        <button type="button" id="mode-committee-btn" class="seg-btn is-on" role="tab" aria-selected="true">Committee Boat</button>
+        <button type="button" id="mode-classic-btn" class="seg-btn" role="tab" aria-selected="false">Type it in</button>
       </div>
     </div>
 
-    <div id="classic-entry">
+    <div id="classic-entry" hidden>
       <div class="row mark-input-row">
         <div class="mark-input-wrap">
           <input type="text" id="mark-input" placeholder="Type a mark, or a whole course: A H F G" autocomplete="off" autocapitalize="characters">
@@ -71,7 +71,7 @@
 
     <ul id="mark-suggestions" class="suggestions" hidden></ul>
 
-    <div id="committee-entry" hidden>
+    <div id="committee-entry">
       <div class="rc-boat">
         <div class="rc-hull">
           <div class="rc-boat-name">RACE COMMITTEE</div>
@@ -86,6 +86,10 @@
                 <span class="rc-flag-cloth rc-flag-t"></span>
                 <span class="rc-signal-caption">Twice around</span>
               </button>
+              <div class="rc-signal-flag rc-burgee-slot" id="rc-burgee-slot">
+                <span class="burgee" id="rc-burgee"><span class="burgee-text"></span></span>
+                <span class="rc-signal-caption" id="rc-burgee-caption"></span>
+              </div>
             </div>
           </div>
         </div>
