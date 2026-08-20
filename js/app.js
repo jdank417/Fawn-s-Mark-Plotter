@@ -17,6 +17,11 @@
     startPickMode: false,
     legsData: [], // [{ legIndex, fromLabel, toLabel, toMark, distNm, trueHdg, magHdg, missing }]
     currentLegIndex: null,
+    entryMode: "classic", // "classic" | "committee" (beta committee-boat board)
+    // Course-wide rounding from the RC's green flag: null = not signalled,
+    // "S" = leave marks to starboard, "P" = leave marks to port. Individual
+    // marks can override this via their own slot flag.
+    defaultRounding: null,
   };
 
   let uidCounter = 0;
@@ -58,6 +63,14 @@
     legNavTargetBadge: document.getElementById("leg-nav-target-badge"),
     legNavHeading: document.getElementById("leg-nav-heading"),
     legNavDist: document.getElementById("leg-nav-dist"),
+    legNavRound: document.getElementById("leg-nav-round"),
+    modeClassicBtn: document.getElementById("mode-classic-btn"),
+    modeCommitteeBtn: document.getElementById("mode-committee-btn"),
+    classicEntry: document.getElementById("classic-entry"),
+    committeeEntry: document.getElementById("committee-entry"),
+    rcBoard: document.getElementById("rc-board"),
+    rcGreenFlag: document.getElementById("rc-green-flag"),
+    rcHint: document.getElementById("rc-hint"),
   };
 
   fetch("data/marks.json")
@@ -117,6 +130,10 @@
     el.sheetToggle.addEventListener("click", toggleSheet);
     el.infoBtn.addEventListener("click", showInfo);
     el.locateBtn.addEventListener("click", onLocateClick);
+
+    el.modeClassicBtn.addEventListener("click", () => setEntryMode("classic"));
+    el.modeCommitteeBtn.addEventListener("click", () => setEntryMode("committee"));
+    el.rcGreenFlag.addEventListener("click", cycleGreenFlag);
 
     el.legPrevBtn.addEventListener("click", () => setCurrentLeg((state.currentLegIndex ?? 0) - 1, { pan: true }));
     el.legNextBtn.addEventListener("click", () => setCurrentLeg((state.currentLegIndex ?? 0) + 1, { pan: true }));
@@ -178,6 +195,7 @@
     state.course = [];
     state.committed = false;
     renderChips();
+    renderBoard();
     hideLegStrip();
     setSheetExpanded(true);
     updateSheetToggleLabel();
@@ -238,7 +256,33 @@
   }
 
   function pushMarkToCourse(mark) {
-    state.course.push({ uid: ++uidCounter, mark: mark, overrideLat: null, overrideLon: null });
+    state.course.push({ uid: ++uidCounter, mark: mark, overrideLat: null, overrideLon: null, rounding: null });
+  }
+
+  // ---------- Rounding (which side you leave each mark on) ----------
+
+  // A mark's own flag wins; otherwise fall back to the course-wide green
+  // flag. null means the RC hasn't signalled a rounding, so we show none
+  // rather than guessing.
+  function effectiveRounding(entry) {
+    return entry.rounding || state.defaultRounding;
+  }
+
+  function roundingWord(rounding) {
+    if (rounding === "S") return "leave to starboard";
+    if (rounding === "P") return "leave to port";
+    return "";
+  }
+
+  function roundingTagHtml(rounding) {
+    if (!rounding) return "";
+    return " <span class='round-tag round-" + rounding + "'>" + rounding + "</span>";
+  }
+
+  function cycleRounding(current) {
+    if (!current) return "S";
+    if (current === "S") return "P";
+    return null;
   }
 
   function addMarkObject(mark) {
@@ -350,6 +394,7 @@
   function removeMark(uid) {
     state.course = state.course.filter((e) => e.uid !== uid);
     renderChips();
+    renderBoard();
   }
 
   function clearCourse() {
@@ -357,6 +402,7 @@
     state.committed = false;
     cancelStartPickMode();
     renderChips();
+    renderBoard();
     hideLegStrip();
     updateSheetToggleLabel();
     setStatus("");
@@ -377,6 +423,27 @@
       const label = document.createElement("span");
       label.textContent = (idx + 1) + ". " + entry.mark.label;
       chip.appendChild(label);
+
+      // Always render the rounding tag (muted when nothing is set yet) so
+      // rounding is reachable from classic entry without the RC board.
+      const rounding = effectiveRounding(entry);
+      const inherited = !entry.rounding && !!rounding;
+      const tag = document.createElement("span");
+      tag.className = "round-tag" + (rounding ? " round-" + rounding : " round-unset") +
+        (inherited ? " round-inherited" : "");
+      tag.textContent = rounding || "–";
+      tag.title = rounding
+        ? entry.mark.label + " — " + roundingWord(rounding) +
+          (inherited ? " (following the green flag)" : "") + " — tap to change"
+        : entry.mark.label + " — no rounding set, tap to set";
+      tag.addEventListener("click", () => {
+        entry.rounding = cycleRounding(entry.rounding);
+        renderChips();
+        renderBoard();
+        if (state.committed) renderResults();
+      });
+      chip.appendChild(tag);
+
       const removeBtn = document.createElement("button");
       removeBtn.type = "button";
       removeBtn.className = "chip-remove";
@@ -386,6 +453,180 @@
       chip.appendChild(removeBtn);
       el.courseChips.appendChild(chip);
     });
+  }
+
+  // ---------- Beta: committee-boat course board ----------
+  //
+  // Mirrors what you actually read off the back of the RC boat: the course
+  // letters in order on the board, and the green flag for starboard
+  // roundings. Editing here drives the same state.course the classic entry
+  // does, so the two modes are interchangeable at any point.
+
+  function setEntryMode(mode) {
+    state.entryMode = mode;
+    const committee = mode === "committee";
+    el.classicEntry.hidden = committee;
+    el.committeeEntry.hidden = !committee;
+    el.modeClassicBtn.classList.toggle("is-on", !committee);
+    el.modeCommitteeBtn.classList.toggle("is-on", committee);
+    el.modeClassicBtn.setAttribute("aria-selected", String(!committee));
+    el.modeCommitteeBtn.setAttribute("aria-selected", String(committee));
+    if (committee) {
+      hideSuggestions();
+      cancelStartPickMode();
+      renderBoard();
+    }
+  }
+
+  function greenFlagLabel() {
+    if (state.defaultRounding === "S") return "Green flag up — round to starboard";
+    if (state.defaultRounding === "P") return "No green flag — round to port";
+    return "No flag set — tap to signal";
+  }
+
+  function renderGreenFlag() {
+    el.rcGreenFlag.setAttribute("aria-pressed", String(state.defaultRounding === "S"));
+    el.rcGreenFlag.dataset.rounding = state.defaultRounding || "";
+    const cloth = el.rcGreenFlag.querySelector(".rc-flag-cloth");
+    if (cloth) {
+      cloth.style.background =
+        state.defaultRounding === "S" ? "var(--buoy-green)"
+        : state.defaultRounding === "P" ? "var(--buoy-red)"
+        : "";
+    }
+    const label = el.rcGreenFlag.querySelector(".rc-flag-label");
+    if (label) label.textContent = greenFlagLabel();
+  }
+
+  function cycleGreenFlag() {
+    state.defaultRounding = cycleRounding(state.defaultRounding);
+    renderBoard();
+    renderChips();
+    if (state.committed) renderResults();
+  }
+
+  function makeSlot(entry, index) {
+    const slot = document.createElement("div");
+    slot.className = "rc-slot";
+
+    const order = document.createElement("div");
+    order.className = "rc-slot-order";
+    order.textContent = entry ? String(index + 1) : "+";
+    slot.appendChild(order);
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "rc-slot-input";
+    input.autocomplete = "off";
+    input.setAttribute("autocapitalize", "characters");
+    input.value = entry ? entry.mark.label : "";
+    input.placeholder = entry ? "" : "–";
+    input.setAttribute("aria-label", entry ? "Mark " + (index + 1) : "Add a mark");
+    if (entry) input.dataset.uid = String(entry.uid);
+    else input.dataset.newSlot = "true";
+    slot.appendChild(input);
+
+    const flagBtn = document.createElement("button");
+    flagBtn.type = "button";
+    flagBtn.className = "rc-slot-flag";
+    const rounding = entry ? effectiveRounding(entry) : null;
+    // A slot showing the green flag's value rather than its own is drawn
+    // outlined instead of filled, so "following the flag" is visibly
+    // different from a rounding set on this mark alone.
+    const inherited = !!(entry && !entry.rounding && rounding);
+    flagBtn.dataset.rounding = rounding || "";
+    if (inherited) flagBtn.dataset.inherited = "true";
+    flagBtn.textContent = rounding || "–";
+    flagBtn.title = entry
+      ? "Rounding for " + entry.mark.label +
+        (rounding ? " — " + roundingWord(rounding) : "") +
+        (inherited ? " (following the green flag)" : "") + " — tap to change"
+      : "";
+    if (!entry) flagBtn.disabled = true;
+    slot.appendChild(flagBtn);
+
+    if (entry) {
+      flagBtn.addEventListener("click", () => {
+        // Cycle this mark's own setting (unset -> S -> P -> unset) rather
+        // than the effective value, so every tap visits a distinct state
+        // even when the green flag already supplies a default.
+        entry.rounding = cycleRounding(entry.rounding);
+        renderBoard();
+        renderChips();
+        if (state.committed) renderResults();
+      });
+
+      input.addEventListener("input", () => {
+        const raw = input.value.trim();
+        if (!raw) {
+          slot.classList.remove("is-invalid");
+          return;
+        }
+        const mark = resolveMarkById(raw) || resolveMark(raw);
+        if (mark) {
+          entry.mark = mark;
+          slot.classList.remove("is-invalid");
+          renderChips();
+          if (state.committed) renderResults();
+        } else {
+          slot.classList.add("is-invalid");
+        }
+      });
+
+      input.addEventListener("change", () => {
+        if (!input.value.trim()) {
+          state.course = state.course.filter((e) => e.uid !== entry.uid);
+          renderBoard();
+          renderChips();
+          if (state.committed) renderResults();
+          return;
+        }
+        renderBoard();
+      });
+    } else {
+      // Trailing blank slot: typing a mark into it appends to the course.
+      input.addEventListener("input", () => {
+        const raw = input.value.trim();
+        if (!raw) return;
+        const mark = resolveMarkById(raw) || resolveMark(raw);
+        if (!mark) {
+          slot.classList.add("is-invalid");
+          return;
+        }
+        slot.classList.remove("is-invalid");
+        pushMarkToCourse(mark);
+        renderChips();
+        if (state.committed) renderResults();
+        renderBoard({ focusNewSlot: true });
+      });
+    }
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        input.blur();
+      }
+    });
+
+    return slot;
+  }
+
+  function renderBoard(opts) {
+    if (state.entryMode !== "committee") return;
+    renderGreenFlag();
+    el.rcBoard.innerHTML = "";
+    state.course.forEach((entry, idx) => el.rcBoard.appendChild(makeSlot(entry, idx)));
+    el.rcBoard.appendChild(makeSlot(null, state.course.length));
+
+    el.rcHint.textContent = state.course.length
+      ? "Type the letters as they read on the board; tap a flag to set that mark's rounding."
+      : "Type the course letters into the board, left to right.";
+
+    if (opts && opts.focusNewSlot) {
+      const newInput = el.rcBoard.querySelector('input[data-new-slot="true"]');
+      if (newInput) newInput.focus();
+      el.rcBoard.scrollLeft = el.rcBoard.scrollWidth;
+    }
   }
 
   function setStatus(msg, isError) {
@@ -482,7 +723,14 @@
       const pos = resolvedPosition(entry);
       mapPoints.push(
         pos
-          ? { ...pos, label: entry.mark.label, name: entry.mark.name, govtLight: entry.mark.govt_light, portable: entry.mark.portable }
+          ? {
+              ...pos,
+              label: entry.mark.label,
+              name: entry.mark.name,
+              govtLight: entry.mark.govt_light,
+              portable: entry.mark.portable,
+              rounding: effectiveRounding(entry),
+            }
           : null
       );
       if (i === 0) continue;
@@ -491,15 +739,16 @@
       const prev = resolvedPosition(state.course[i - 1]);
       const fromLabel = state.course[i - 1].mark.label;
       const toLabel = entry.mark.label;
+      const rounding = effectiveRounding(entry);
       const card = document.createElement("div");
       card.dataset.legIndex = String(legIndex);
-      const route = fromLabel + " → " + toLabel;
+      const route = fromLabel + " → " + toLabel + roundingTagHtml(rounding);
 
       if (!prev || !pos) {
         card.className = "leg-card leg-missing";
         card.innerHTML = "<div class='leg-route'>" + route + "</div><div class='leg-detail'>position unknown</div>";
         el.legStrip.appendChild(card);
-        legsData.push({ legIndex, fromLabel, toLabel, toMark: entry.mark, missing: true });
+        legsData.push({ legIndex, fromLabel, toLabel, toMark: entry.mark, rounding, missing: true });
         continue;
       }
 
@@ -514,7 +763,7 @@
         "<div class='leg-route'>" + route + "</div>" +
         "<div class='leg-detail'>" + hdgText + " · " + dist.toFixed(2) + " nm</div>";
       el.legStrip.appendChild(card);
-      legsData.push({ legIndex, fromLabel, toLabel, toMark: entry.mark, distNm: dist, trueHdg, magHdg, missing: false });
+      legsData.push({ legIndex, fromLabel, toLabel, toMark: entry.mark, rounding, distNm: dist, trueHdg, magHdg, missing: false });
     }
 
     const totalCard = document.createElement("div");
@@ -546,6 +795,15 @@
     const colorInfo = classifyMarkColor(leg.toMark.govt_light, leg.toMark.portable);
     el.legNavTargetBadge.textContent = leg.toLabel;
     el.legNavTargetBadge.setAttribute("style", markBadgeStyleAttr(colorInfo));
+
+    if (leg.rounding) {
+      el.legNavRound.hidden = false;
+      el.legNavRound.textContent = leg.rounding === "S" ? "STBD" : "PORT";
+      el.legNavRound.className = "leg-nav-round round-text-" + leg.rounding;
+      el.legNavRound.title = roundingWord(leg.rounding);
+    } else {
+      el.legNavRound.hidden = true;
+    }
 
     if (leg.missing) {
       el.legNavHeading.textContent = "—";
@@ -650,10 +908,13 @@
     }
   }
 
-  function markBadgeIcon(label, colorInfo) {
+  function markBadgeIcon(label, colorInfo, rounding) {
+    const roundBadge = rounding
+      ? "<span class='badge-round round-" + rounding + "'>" + rounding + "</span>"
+      : "";
     return L.divIcon({
       className: "mark-icon",
-      html: "<div class='mark-badge' style='" + markBadgeStyleAttr(colorInfo) + "'>" + label + "</div>",
+      html: "<div class='mark-badge' style='" + markBadgeStyleAttr(colorInfo) + "'>" + label + roundBadge + "</div>",
       iconSize: [26, 26],
       iconAnchor: [13, 13],
       tooltipAnchor: [0, -16],
@@ -687,9 +948,14 @@
         }
         const colorInfo = classifyMarkColor(p.govtLight, p.portable);
         const colorWord = colorLabel(colorInfo);
-        markerByIndex[idx] = L.marker([p.lat, p.lon], { icon: markBadgeIcon(p.label, colorInfo) })
+        const roundWord = roundingWord(p.rounding);
+        markerByIndex[idx] = L.marker([p.lat, p.lon], { icon: markBadgeIcon(p.label, colorInfo, p.rounding) })
           .addTo(courseLayer)
-          .bindTooltip(p.label + " — " + p.name + (colorWord ? " (" + colorWord + ")" : ""));
+          .bindTooltip(
+            p.label + " — " + p.name +
+            (colorWord ? " (" + colorWord + ")" : "") +
+            (roundWord ? " · " + roundWord : "")
+          );
       });
 
       // One segment + direction arrow per leg, only where both endpoints are
