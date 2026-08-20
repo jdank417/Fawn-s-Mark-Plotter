@@ -13,6 +13,7 @@
     myPosition: null, // { lat, lon, accuracy }
     watching: false,
     gpsCentered: false,
+    startPickMode: false,
   };
 
   let uidCounter = 0;
@@ -27,13 +28,15 @@
     mbsaListSelect: document.getElementById("mbsa-list-select"),
     listHint: document.getElementById("list-hint"),
     markInput: document.getElementById("mark-input"),
-    markOptions: document.getElementById("mark-options"),
+    markInputWrap: document.querySelector(".mark-input-wrap"),
+    suggestions: document.getElementById("mark-suggestions"),
     addMarkBtn: document.getElementById("add-mark-btn"),
     courseChips: document.getElementById("course-chips"),
     useMagnetic: document.getElementById("use-magnetic"),
     variation: document.getElementById("variation"),
     clearCourseBtn: document.getElementById("clear-course-btn"),
-    setStartBtn: document.getElementById("set-start-btn"),
+    gpsStartBtn: document.getElementById("gps-start-btn"),
+    markStartBtn: document.getElementById("mark-start-btn"),
     setCourseBtn: document.getElementById("set-course-btn"),
     buildStatus: document.getElementById("build-status"),
     sheet: document.getElementById("sheet"),
@@ -68,11 +71,25 @@
       if (e.key === "Enter") {
         e.preventDefault();
         addMarkToCourse();
+      } else if (e.key === "Escape") {
+        cancelStartPickMode();
+        hideSuggestions();
       }
     });
+    el.markInput.addEventListener("input", () => showSuggestions(el.markInput.value));
+    el.markInput.addEventListener("focus", () => showSuggestions(el.markInput.value));
+    el.suggestions.addEventListener("pointerdown", onSuggestionPointerDown);
+    document.addEventListener("pointerdown", (e) => {
+      if (!el.markInputWrap.contains(e.target)) {
+        hideSuggestions();
+        cancelStartPickMode();
+      }
+    });
+
     el.clearCourseBtn.addEventListener("click", clearCourse);
     el.setCourseBtn.addEventListener("click", setCourse);
-    el.setStartBtn.addEventListener("click", setStartFromGps);
+    el.gpsStartBtn.addEventListener("click", setStartFromGps);
+    el.markStartBtn.addEventListener("click", beginPickStartFromMark);
     el.useMagnetic.addEventListener("change", () => { if (state.committed) renderResults(); });
     el.variation.addEventListener("input", () => { if (state.committed) renderResults(); });
     el.sheetToggle.addEventListener("click", toggleSheet);
@@ -128,7 +145,6 @@
     const list = state.data.lists[state.listKey];
     el.listHint.textContent = list.label + " — " + list.marks.length + " marks.";
 
-    populateMarkDatalist();
     state.course = [];
     state.committed = false;
     renderChips();
@@ -136,31 +152,22 @@
     setSheetExpanded(true);
     updateSheetToggleLabel();
     setStatus("");
+    hideSuggestions();
   }
 
-  function populateMarkDatalist() {
-    const list = state.data.lists[state.listKey];
-    el.markOptions.innerHTML = "";
-    list.marks.forEach((mark) => {
-      const opt = document.createElement("option");
-      opt.value = mark.label + " — " + mark.name + (mark.portable ? " (portable)" : "");
-      el.markOptions.appendChild(opt);
-    });
+  function currentMarks() {
+    return state.data.lists[state.listKey].marks;
   }
 
   // ---------- Course building ----------
 
   function resolveMark(rawInput) {
-    const list = state.data.lists[state.listKey];
     const raw = (rawInput || "").trim();
     if (!raw) return null;
-    let candidateId = raw;
-    const dashIdx = raw.indexOf(" — ");
-    if (dashIdx !== -1) candidateId = raw.slice(0, dashIdx).trim();
-    const byId = list.marks.find((m) => m.id.toLowerCase() === candidateId.toLowerCase());
+    const byId = currentMarks().find((m) => m.id.toLowerCase() === raw.toLowerCase());
     if (byId) return byId;
     const lower = raw.toLowerCase();
-    const nameMatches = list.marks.filter((m) => m.name.toLowerCase().includes(lower));
+    const nameMatches = currentMarks().filter((m) => m.name.toLowerCase().includes(lower));
     if (nameMatches.length === 1) return nameMatches[0];
     return null;
   }
@@ -172,11 +179,67 @@
       el.markInput.select();
       return;
     }
+    addMarkObject(mark);
+  }
+
+  function addMarkObject(mark) {
     state.course.push({ uid: ++uidCounter, mark: mark, overrideLat: null, overrideLon: null });
     el.markInput.value = "";
+    hideSuggestions();
     el.markInput.focus();
     setStatus("");
     renderChips();
+  }
+
+  // ---------- Mark suggestion dropdown ----------
+
+  function showSuggestions(filterText) {
+    const filter = (filterText || "").trim().toLowerCase();
+    const pool = state.startPickMode ? currentMarks().filter((m) => m.lat != null && m.lon != null) : currentMarks();
+    const matches = filter
+      ? pool.filter((m) => m.id.toLowerCase().startsWith(filter) || m.name.toLowerCase().includes(filter))
+      : pool;
+
+    el.suggestions.innerHTML = "";
+    if (matches.length === 0) {
+      const li = document.createElement("li");
+      li.className = "sug-empty";
+      li.textContent = "No matching marks.";
+      el.suggestions.appendChild(li);
+    } else {
+      matches.forEach((m) => {
+        const li = document.createElement("li");
+        li.dataset.id = m.id;
+        const label = document.createElement("span");
+        label.className = "sug-label";
+        label.textContent = m.label;
+        const name = document.createElement("span");
+        name.className = "sug-name";
+        name.textContent = m.name + (m.portable ? " (portable)" : "");
+        li.appendChild(label);
+        li.appendChild(name);
+        el.suggestions.appendChild(li);
+      });
+    }
+    el.suggestions.hidden = false;
+  }
+
+  function hideSuggestions() {
+    el.suggestions.hidden = true;
+  }
+
+  function onSuggestionPointerDown(e) {
+    const li = e.target.closest("li[data-id]");
+    if (!li) return;
+    e.preventDefault();
+    const mark = currentMarks().find((m) => m.id === li.dataset.id);
+    if (!mark) return;
+
+    if (state.startPickMode) {
+      finishPickStartFromMark(mark);
+      return;
+    }
+    addMarkObject(mark);
   }
 
   function removeMark(uid) {
@@ -187,6 +250,7 @@
   function clearCourse() {
     state.course = [];
     state.committed = false;
+    cancelStartPickMode();
     renderChips();
     hideLegStrip();
     updateSheetToggleLabel();
@@ -359,13 +423,24 @@
       }
       return;
     }
-    map = L.map("map", { zoomControl: true, attributionControl: true }).setView([42.45, -70.82], 10);
+    map = L.map("map", { zoomControl: false, attributionControl: true }).setView([42.45, -70.82], 10);
+    L.control.zoom({ position: "bottomleft" }).addTo(map);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 18,
       attribution: "&copy; OpenStreetMap contributors",
     }).addTo(map);
     courseLayer = L.layerGroup().addTo(map);
     gpsLayer = L.layerGroup().addTo(map);
+  }
+
+  function markBadgeIcon(label, isStart) {
+    return L.divIcon({
+      className: "mark-icon",
+      html: "<div class='mark-badge" + (isStart ? " start-badge" : "") + "'>" + label + "</div>",
+      iconSize: [26, 26],
+      iconAnchor: [13, 13],
+      tooltipAnchor: [0, -16],
+    });
   }
 
   function renderCourseOnMap(points) {
@@ -376,8 +451,10 @@
       const known = points.filter(Boolean);
       if (known.length === 0) return;
 
-      known.forEach((p) => {
-        L.marker([p.lat, p.lon]).addTo(courseLayer).bindTooltip(p.label + " — " + p.name);
+      known.forEach((p, idx) => {
+        L.marker([p.lat, p.lon], { icon: markBadgeIcon(p.label, idx === 0) })
+          .addTo(courseLayer)
+          .bindTooltip(p.label + " — " + p.name);
       });
       if (known.length > 1) {
         L.polyline(points.filter(Boolean).map((p) => [p.lat, p.lon]), {
@@ -467,9 +544,35 @@
     });
   }
 
+  // Which course entry actually needs a position: prefer the first one that
+  // doesn't resolve to any position yet (typically a portable start pin),
+  // even if it isn't literally the first mark in the course. Falls back to
+  // the first mark if everything already has a position.
+  function findStartTargetEntry() {
+    return state.course.find((e) => resolvedPosition(e) == null) || state.course[0];
+  }
+
+  function applyStartPosition(position, sourceLabel) {
+    const target = findStartTargetEntry();
+    const targetId = target.mark.id;
+    let count = 0;
+    state.course.forEach((entry) => {
+      if (entry.mark.id === targetId) {
+        entry.overrideLat = position.lat;
+        entry.overrideLon = position.lon;
+        count++;
+      }
+    });
+    setStatus(
+      "Start (" + target.mark.label + ") set from " + sourceLabel +
+      " — applied to " + count + " mark" + (count === 1 ? "" : "s") + "."
+    );
+    if (state.committed) renderResults();
+  }
+
   async function setStartFromGps() {
     if (state.course.length === 0) {
-      setStatus("Add a start mark first, then tap Set Start.", true);
+      setStatus("Add a start mark first, then tap GPS Start.", true);
       return;
     }
     let position = state.myPosition;
@@ -491,18 +594,44 @@
         position = { lat: parts[0], lon: parts[1] };
       }
     }
+    const acc = position.accuracy ? "GPS (±" + Math.round(position.accuracy) + "m)" : "GPS";
+    applyStartPosition(position, acc);
+  }
 
-    const startId = state.course[0].mark.id;
-    let count = 0;
-    state.course.forEach((entry) => {
-      if (entry.mark.id === startId) {
-        entry.overrideLat = position.lat;
-        entry.overrideLon = position.lon;
-        count++;
-      }
-    });
-    const acc = position.accuracy ? " (±" + Math.round(position.accuracy) + "m)" : "";
-    setStatus("Start set from GPS" + acc + " — applied to " + count + " mark" + (count === 1 ? "" : "s") + ".");
-    if (state.committed) renderResults();
+  // ---------- Set Start from a charted (government) mark ----------
+
+  function beginPickStartFromMark() {
+    if (state.course.length === 0) {
+      setStatus("Add a start mark first, then tap Mark Start.", true);
+      return;
+    }
+    state.startPickMode = true;
+    el.markInputWrap.classList.add("picking");
+    el.markInput.placeholder = "Tap a charted mark to use as the start…";
+    el.markInput.value = "";
+    el.markInput.focus();
+    setStatus("Pick a charted (non-portable) mark to use as the start line.");
+    showSuggestions("");
+  }
+
+  function cancelStartPickMode() {
+    if (!state.startPickMode) return;
+    state.startPickMode = false;
+    el.markInputWrap.classList.remove("picking");
+    el.markInput.placeholder = "Type or tap to pick a mark";
+    setStatus("");
+  }
+
+  function finishPickStartFromMark(mark) {
+    state.startPickMode = false;
+    el.markInputWrap.classList.remove("picking");
+    el.markInput.placeholder = "Type or tap to pick a mark";
+    el.markInput.value = "";
+    hideSuggestions();
+    if (mark.lat == null || mark.lon == null) {
+      setStatus(mark.label + " has no charted position — pick a fixed mark, or use GPS instead.", true);
+      return;
+    }
+    applyStartPosition({ lat: mark.lat, lon: mark.lon }, "charted mark " + mark.label);
   }
 })();
