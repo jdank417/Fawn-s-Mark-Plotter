@@ -963,3 +963,29 @@ select,
 .suggestions {
   touch-action: manipulation;
 }
+
+/* Marks the RC places on the water carry no charted position; this pill
+   makes that visible and is the way to give them one. */
+.chip .set-tag {
+  min-height: auto;
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
+  border: 1px dashed var(--buoy-orange);
+  background: transparent;
+  color: var(--buoy-orange);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.chip .set-tag.is-target {
+  background: var(--buoy-orange);
+  border-style: solid;
+  color: #fff;
+}
+
+.rc-slot.needs-position .rc-slot-input {
+  border-color: var(--buoy-orange);
+  box-shadow: inset 0 0 0 1px var(--buoy-orange);
+}
