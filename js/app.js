@@ -27,6 +27,9 @@
     // uid of the course entry acting as the start line, once one has been
     // set from GPS or a charted mark.
     startUid: null,
+    // uid of the entry currently being given a position, when the user picked
+    // a specific mark to place rather than the start.
+    positionTargetUid: null,
   };
 
   let uidCounter = 0;
@@ -34,6 +37,11 @@
   let courseLayer = null;
   let gpsLayer = null;
   let watchId = null;
+  // Which input the suggestion list is attached to, and what picking from it
+  // should do. Lets the same list serve the classic input and the committee
+  // board's slots.
+  let suggestAnchor = null;
+  let suggestTarget = null;
   let lastGeometryKey = null; // skips map teardown when only text changed
   let lastPositionKey = null; // skips re-fitting the view when nothing moved
   let legLayers = []; // parallel to legsData: [{ polyline, arrow, targetMarker } | null]
@@ -138,6 +146,8 @@
     // upward before the tap resolved, and taps landed on the wrong control.
     document.addEventListener("click", (e) => {
       if (el.markInputWrap.contains(e.target) || el.suggestions.contains(e.target)) return;
+      // Board slot inputs drive the same list; clicking one must not close it.
+      if (e.target.closest(".rc-slot-input")) return;
       // The start buttons open the picker themselves; since this runs on the
       // bubble phase it would otherwise close what they just opened.
       if (e.target.closest("#mark-start-btn, #gps-start-btn")) return;
@@ -229,6 +239,8 @@
     state.course = [];
     state.committed = false;
     state.startUid = null;
+    state.positionTargetUid = null;
+    renderPlacementButtons();
     renderChips();
     renderBoard();
     hideLegStrip();
@@ -425,7 +437,9 @@
 
   // ---------- Mark suggestion dropdown ----------
 
-  function showSuggestions(filterText) {
+  function showSuggestions(filterText, anchorEl, target) {
+    suggestAnchor = anchorEl || el.markInput;
+    suggestTarget = target || (state.startPickMode ? { kind: "startPick" } : { kind: "classic" });
     const filter = (filterText || "").trim().toLowerCase();
     const pool = state.startPickMode ? currentMarks().filter((m) => m.lat != null && m.lon != null) : currentMarks();
     const matches = filter
@@ -463,12 +477,17 @@
 
   // Anchor the overlay just above the input, growing upward over the map.
   function positionSuggestions() {
-    const r = el.markInput.getBoundingClientRect();
+    const anchor = suggestAnchor || el.markInput;
+    if (!anchor || !anchor.isConnected) return;
+    const r = anchor.getBoundingClientRect();
     if (r.width === 0) return; // input hidden (committee mode) — nothing to anchor to
     const gap = 6;
     const available = r.top - gap - 8;
-    el.suggestions.style.left = r.left + "px";
-    el.suggestions.style.width = r.width + "px";
+    const minWidth = 220;
+    const width = Math.min(window.innerWidth - 16, Math.max(r.width, minWidth));
+    const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8));
+    el.suggestions.style.left = left + "px";
+    el.suggestions.style.width = width + "px";
     el.suggestions.style.top = "auto";
     el.suggestions.style.bottom = (window.innerHeight - r.top + gap) + "px";
     el.suggestions.style.maxHeight = Math.max(140, Math.min(window.innerHeight * 0.5, available)) + "px";
@@ -480,10 +499,37 @@
     const mark = currentMarks().find((m) => m.id === li.dataset.id);
     if (!mark) return;
 
-    if (state.startPickMode) {
+    const target = suggestTarget || { kind: "classic" };
+
+    if (state.startPickMode || target.kind === "startPick") {
       finishPickStartFromMark(mark);
       return;
     }
+
+    if (target.kind === "slot") {
+      const entry = state.course.find((c) => c.uid === target.uid);
+      if (entry) {
+        entry.mark = mark;
+        renderChips();
+        renderBoard();
+        if (state.committed) renderResults();
+      }
+      hideSuggestions();
+      return;
+    }
+
+    if (target.kind === "newSlot") {
+      if (isRepeatOfLast(mark)) {
+        setStatus(mark.label + " is already the last mark.", true);
+        return;
+      }
+      pushMarkToCourse(mark);
+      setStatus("");
+      renderChips();
+      renderBoard({ focusNewSlot: true });
+      return;
+    }
+
     addMarkObject(mark, { keepSuggestions: true });
   }
 
@@ -497,6 +543,8 @@
     state.course = [];
     state.committed = false;
     state.startUid = null;
+    state.positionTargetUid = null;
+    renderPlacementButtons();
     cancelStartPickMode();
     renderChips();
     renderBoard();
@@ -521,6 +569,19 @@
       const label = document.createElement("span");
       label.textContent = (idx + 1) + ". " + entry.mark.label;
       chip.appendChild(label);
+
+      if (resolvedPosition(entry) == null) {
+        const setTag = document.createElement("button");
+        setTag.type = "button";
+        setTag.className = "set-tag" + (state.positionTargetUid === entry.uid ? " is-target" : "");
+        setTag.textContent = "SET";
+        setTag.title = entry.mark.label + " has no charted position — tap, then use GPS Start or Mark Start";
+        setTag.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          choosePositionTarget(entry);
+        });
+        chip.appendChild(setTag);
+      }
 
       if (isStartEntry(entry, idx)) {
         const startTag = document.createElement("span");
@@ -636,7 +697,8 @@
 
   function makeSlot(entry, index) {
     const slot = document.createElement("div");
-    slot.className = "rc-slot";
+    slot.className = "rc-slot" +
+      (entry && resolvedPosition(entry) == null ? " needs-position" : "");
 
     const order = document.createElement("div");
     order.className = "rc-slot-order";
@@ -685,8 +747,13 @@
         if (state.committed) renderResults();
       });
 
+      const slotTarget = { kind: "slot", uid: entry.uid };
+      input.addEventListener("focus", () => showSuggestions(input.value, el.rcBoard, slotTarget));
+      input.addEventListener("click", () => showSuggestions(input.value, el.rcBoard, slotTarget));
+
       input.addEventListener("input", () => {
         const raw = input.value.trim();
+        showSuggestions(raw, el.rcBoard, slotTarget);
         if (!raw) {
           slot.classList.remove("is-invalid");
           return;
@@ -713,9 +780,14 @@
         renderBoard();
       });
     } else {
+      const newTarget = { kind: "newSlot" };
+      input.addEventListener("focus", () => showSuggestions(input.value, el.rcBoard, newTarget));
+      input.addEventListener("click", () => showSuggestions(input.value, el.rcBoard, newTarget));
+
       // Trailing blank slot: typing a mark into it appends to the course.
       input.addEventListener("input", () => {
         const raw = input.value.trim();
+        showSuggestions(raw, el.rcBoard, newTarget);
         if (!raw) return;
         const mark = resolveMarkById(raw) || resolveMark(raw);
         if (!mark) {
@@ -723,6 +795,12 @@
           return;
         }
         slot.classList.remove("is-invalid");
+        if (isRepeatOfLast(mark)) {
+          slot.classList.add("is-invalid");
+          setStatus(mark.label + " is already the last mark.", true);
+          return;
+        }
+        hideSuggestions();
         pushMarkToCourse(mark);
         renderChips();
         if (state.committed) renderResults();
@@ -742,6 +820,7 @@
 
   function renderBoard(opts) {
     if (state.entryMode !== "committee") return;
+    el.rcBoard.onscroll = positionSuggestions;
     renderGreenFlag();
     el.rcBoard.innerHTML = "";
     state.course.forEach((entry, idx) => el.rcBoard.appendChild(makeSlot(entry, idx)));
@@ -757,6 +836,27 @@
       if (newInput) newInput.focus();
       el.rcBoard.scrollLeft = el.rcBoard.scrollWidth;
     }
+  }
+
+  function choosePositionTarget(entry) {
+    state.positionTargetUid = state.positionTargetUid === entry.uid ? null : entry.uid;
+    renderChips();
+    renderBoard();
+    renderPlacementButtons();
+    setStatus(
+      state.positionTargetUid
+        ? "Placing " + entry.mark.label + " — tap GPS Start for here, or Mark Start to copy a charted mark."
+        : ""
+    );
+  }
+
+  function renderPlacementButtons() {
+    const target = state.positionTargetUid != null
+      ? state.course.find((e) => e.uid === state.positionTargetUid)
+      : null;
+    const suffix = target ? " → " + target.mark.label : " Start";
+    el.gpsStartBtn.textContent = "📍 GPS" + suffix;
+    el.markStartBtn.textContent = "⚓ Mark" + suffix;
   }
 
   function setStatus(msg, isError) {
@@ -807,6 +907,18 @@
   function setCourse() {
     if (state.course.length < 2) {
       setStatus("Add at least two marks to plot a course.", true);
+      return;
+    }
+    // Every list carries RC-set marks with no charted position (BYC F/W,
+    // JYC E/F/W, MBSA E/F/W). Plotting with one still unplaced is what
+    // produced legs that looked missing, so require a position first.
+    const unplaced = state.course.filter((e) => resolvedPosition(e) == null);
+    if (unplaced.length > 0) {
+      const names = [...new Set(unplaced.map((e) => e.mark.label))].join(", ");
+      setStatus(
+        "Set a position for " + names + " first — tap SET on the mark, or use GPS Start.",
+        true
+      );
       return;
     }
     state.committed = true;
@@ -1328,8 +1440,14 @@
   }
 
   function applyStartPosition(position, sourceLabel) {
-    const target = ensureStartEntry();
-    state.startUid = target.uid;
+    const chosen = state.positionTargetUid != null
+      ? state.course.find((e) => e.uid === state.positionTargetUid)
+      : null;
+    const target = chosen || ensureStartEntry();
+    // Only the start line is recorded as the start; placing a windward mark
+    // shouldn't relabel it.
+    if (!chosen) state.startUid = target.uid;
+    state.positionTargetUid = null;
     const targetId = target.mark.id;
     let count = 0;
     state.course.forEach((entry) => {
@@ -1340,11 +1458,12 @@
       }
     });
     setStatus(
-      "Start (" + target.mark.label + ") set from " + sourceLabel +
-      " — applied to " + count + " mark" + (count === 1 ? "" : "s") + "."
+      (chosen ? "Placed " : "Start ") + target.mark.label + " from " + sourceLabel +
+      (count > 1 ? " — applied to " + count + " marks." : ".")
     );
     renderChips();
     renderBoard();
+    renderPlacementButtons();
     if (state.committed) renderResults();
   }
 
