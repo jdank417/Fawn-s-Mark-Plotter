@@ -979,9 +979,11 @@ select.compact, input[type="text"], input[type="number"], button {
 
 /* Small blue plate under the mark badge so the start is identifiable at a
    glance while still showing the mark's own letter. */
+/* Above the badge, not below: the start line and burgee radiate outward
+   from the mark and were colliding with it. */
 .mark-badge .badge-start {
   position: absolute;
-  top: calc(100% + 5px);
+  bottom: calc(100% + 5px);
   left: 50%;
   transform: translateX(-50%);
   background: var(--gps-blue);
@@ -1049,4 +1051,53 @@ select,
 .rc-slot.needs-position {
   border-radius: 5px;
   box-shadow: inset 0 0 0 1px rgba(226, 121, 31, 0.55);
+}
+
+/* ---------- Club burgee ----------
+   A pennant carrying the club's initials — a stand-in for the real burgee,
+   not a reproduction of any club's actual design. */
+.burgee {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 34px;
+  height: 23px;
+  padding-left: 3px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  clip-path: polygon(0 0, 100% 0, 72% 50%, 100% 100%, 0 100%);
+  border-radius: 2px 0 0 2px;
+}
+
+.burgee-map {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  filter: drop-shadow(0 0 1px #fff);
+}
+
+.rc-burgee-slot {
+  cursor: default;
+}
+
+/* Start-line affordances */
+.rc-slot-start,
+.chip .start-tag {
+  flex: none;
+  min-height: 1.8rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  border: 1px solid var(--gps-blue);
+  background: var(--gps-blue);
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.chip .start-tag {
+  min-height: auto;
+  padding: 0.05rem 0.3rem;
 }

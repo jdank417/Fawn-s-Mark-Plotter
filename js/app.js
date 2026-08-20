@@ -17,7 +17,7 @@
     startPickMode: false,
     legsData: [], // [{ legIndex, fromLabel, toLabel, toMark, distNm, trueHdg, magHdg, missing }]
     currentLegIndex: null,
-    entryMode: "classic", // "classic" | "committee" (beta committee-boat board)
+    entryMode: "committee", // "committee" (RC board, default) | "classic" (typed)
     // Course-wide rounding from the RC's green flag: null = not signalled,
     // "S" = leave marks to starboard, "P" = leave marks to port. Individual
     // marks can override this via their own slot flag.
@@ -90,6 +90,8 @@
     rcHint: document.getElementById("rc-hint"),
     rcPalette: document.getElementById("rc-palette"),
     rcPaletteHint: document.getElementById("rc-palette-hint"),
+    rcBurgee: document.getElementById("rc-burgee"),
+    rcBurgeeCaption: document.getElementById("rc-burgee-caption"),
   };
 
   fetch("data/marks.json")
@@ -188,6 +190,7 @@
     });
 
     onClubChange();
+    setEntryMode(state.entryMode);
     ensureMap();
   }
 
@@ -206,6 +209,23 @@
 
   function currentClub() {
     return state.data.clubs[el.clubSelect.value];
+  }
+
+  function currentClubCode() {
+    return el.clubSelect.value;
+  }
+
+  // A pennant carrying the club's initials. This is a stand-in for the real
+  // burgee, not a reproduction of any club's actual design — swap in real
+  // artwork if the clubs provide it.
+  function renderBurgee() {
+    const code = currentClubCode();
+    const club = currentClub();
+    if (!code || !club) return;
+    const text = el.rcBurgee.querySelector(".burgee-text");
+    if (text) text.textContent = code;
+    el.rcBurgee.title = club.name;
+    el.rcBurgeeCaption.textContent = club.name.replace(/ Yacht Club$/, "");
   }
 
   function onClubChange() {
@@ -560,10 +580,15 @@
       }
 
       if (isStartEntry(entry, idx)) {
-        const startTag = document.createElement("span");
+        const startTag = document.createElement("button");
+        startTag.type = "button";
         startTag.className = "start-tag";
         startTag.textContent = "START";
-        startTag.title = "Start line";
+        startTag.title = "Start line — tap to re-place it";
+        startTag.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          choosePositionTarget(entry);
+        });
         chip.appendChild(startTag);
       }
 
@@ -693,6 +718,16 @@
     badge.title = entry.mark.label + " — " + entry.mark.name;
     row.appendChild(badge);
 
+    if (isStartEntry(entry, index)) {
+      const startBtn = document.createElement("button");
+      startBtn.type = "button";
+      startBtn.className = "rc-slot-start";
+      startBtn.textContent = "START";
+      startBtn.title = "Start line — tap to re-place it";
+      startBtn.addEventListener("click", () => choosePositionTarget(entry));
+      row.appendChild(startBtn);
+    }
+
     if (unplaced) {
       const setBtn = document.createElement("button");
       setBtn.type = "button";
@@ -738,6 +773,7 @@
   // club's list for this series.
   function renderPalette() {
     el.rcPalette.innerHTML = "";
+    if (!state.listKey || !state.data.lists[state.listKey]) return;
     const last = lastCourseMark();
     currentMarks().forEach((mark) => {
       const key = document.createElement("button");
@@ -773,6 +809,7 @@
   function renderBoard() {
     if (state.entryMode !== "committee") return;
     renderGreenFlag();
+    renderBurgee();
 
     el.rcBoard.innerHTML = "";
     if (state.course.length === 0) {
@@ -812,6 +849,12 @@
     const suffix = target ? " → " + target.mark.label : " Start";
     el.gpsStartBtn.textContent = "📍 GPS" + suffix;
     el.markStartBtn.textContent = "⚓ Mark" + suffix;
+    el.gpsStartBtn.title = target
+      ? "Put " + target.mark.label + " at your current position"
+      : "Start the course at your current position";
+    el.markStartBtn.title = target
+      ? "Copy a charted mark's position onto " + target.mark.label
+      : "Start the course at a charted mark";
   }
 
   function setStatus(msg, isError) {
@@ -901,6 +944,18 @@
     const y = Math.sin(dLambda) * Math.cos(phi2);
     const x = Math.cos(phi1) * Math.sin(phi2) - Math.sin(phi1) * Math.cos(phi2) * Math.cos(dLambda);
     return (toDeg(Math.atan2(y, x)) + 360) % 360;
+  }
+
+  function destinationPoint(lat, lon, bearingDeg, distNm) {
+    const d = distNm / EARTH_RADIUS_NM;
+    const brg = toRad(bearingDeg);
+    const phi1 = toRad(lat), lam1 = toRad(lon);
+    const phi2 = Math.asin(Math.sin(phi1) * Math.cos(d) + Math.cos(phi1) * Math.sin(d) * Math.cos(brg));
+    const lam2 = lam1 + Math.atan2(
+      Math.sin(brg) * Math.sin(d) * Math.cos(phi1),
+      Math.cos(d) - Math.sin(phi1) * Math.sin(phi2)
+    );
+    return { lat: toDeg(phi2), lon: toDeg(lam2) };
   }
 
   function fmtHeading(deg) {
@@ -1249,12 +1304,55 @@
       }
 
       if (positionsChanged) {
-        const bounds = L.latLngBounds(known.map((p) => [p.lat, p.lon]));
+        drawStartLine(points);
+
+      const bounds = L.latLngBounds(known.map((p) => [p.lat, p.lon]));
         map.fitBounds(bounds.pad(0.3), { animate: false });
       }
     } catch (err) {
       console.error("Map rendering failed:", err);
     }
+  }
+
+  // A start line runs from the start mark across to the committee boat,
+  // square to the first leg — the geometry you actually line up against.
+  // Length is nominal: we know where the pin is, not how long the RC set it.
+  const START_LINE_NM = 0.08;
+
+  function burgeeIcon(code) {
+    return L.divIcon({
+      className: "burgee-icon",
+      html: "<span class='burgee burgee-map'><span class='burgee-text'>" + code + "</span></span>",
+      iconSize: [30, 20],
+      iconAnchor: [4, 10],
+    });
+  }
+
+  function drawStartLine(points) {
+    const startIdx = points.findIndex((p) => p && p.isStart);
+    if (startIdx === -1) return;
+    const start = points[startIdx];
+
+    // Square to the first leg that actually goes somewhere.
+    const next = points.slice(startIdx + 1).find(Boolean);
+    if (!next) return;
+    const legBearing = initialBearing(start.lat, start.lon, next.lat, next.lon);
+    // Committee boat to starboard as you look up the course.
+    const boatEnd = destinationPoint(start.lat, start.lon, (legBearing + 90) % 360, START_LINE_NM);
+
+    L.polyline([[start.lat, start.lon], [boatEnd.lat, boatEnd.lon]], {
+      color: "#17222c",
+      weight: 3,
+      opacity: 0.85,
+    }).addTo(courseLayer);
+
+    L.marker([boatEnd.lat, boatEnd.lon], {
+      icon: burgeeIcon(currentClubCode()),
+      interactive: true,
+      keyboard: false,
+    })
+      .addTo(courseLayer)
+      .bindTooltip("Committee boat — " + currentClub().name);
   }
 
   function setMarkerActive(marker, active) {
@@ -1492,6 +1590,33 @@
       setStatus(mark.label + " has no charted position — pick a fixed mark, or use GPS instead.", true);
       return;
     }
-    applyStartPosition({ lat: mark.lat, lon: mark.lon }, "charted mark " + mark.label);
+
+    // Starting at a charted mark means that mark IS the start, so it keeps
+    // its own letter. Copying its position onto a portable placeholder made
+    // "start at J" show up on the board as F.
+    const existing = state.positionTargetUid != null
+      ? state.course.find((e) => e.uid === state.positionTargetUid)
+      : findStartTargetEntry();
+
+    let entry;
+    if (existing) {
+      existing.mark = mark;
+      existing.overrideLat = null;
+      existing.overrideLon = null;
+      entry = existing;
+    } else if (state.course.length && state.course[0].mark.id === mark.id) {
+      entry = state.course[0];
+    } else {
+      entry = { uid: ++uidCounter, mark: mark, overrideLat: null, overrideLon: null, rounding: null };
+      state.course.unshift(entry);
+    }
+
+    state.startUid = entry.uid;
+    state.positionTargetUid = null;
+    setStatus("Start set at " + mark.label + " — " + mark.name + ".");
+    renderChips();
+    renderBoard();
+    renderPlacementButtons();
+    if (state.committed) renderResults();
   }
 })();
