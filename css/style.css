@@ -890,3 +890,21 @@ select.compact, input[type="text"], input[type="number"], button {
 
 .round-tag.round-inherited.round-S { color: var(--buoy-green); }
 .round-tag.round-inherited.round-P { color: var(--buoy-red); }
+
+/* Small transitions so highlight changes read as movement rather than a
+   flicker when the leg strip and map re-render. */
+.leg-card {
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+
+.mark-badge {
+  transition: box-shadow 0.15s ease;
+}
+
+.round-tag, .rc-slot-flag, .seg-btn {
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leg-card, .mark-badge, .round-tag, .rc-slot-flag, .seg-btn { transition: none; }
+}
