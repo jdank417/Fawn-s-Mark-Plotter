@@ -33,6 +33,27 @@
   </div>
 </div>
 
+<div id="info-panel" class="info-panel" hidden role="dialog" aria-modal="true" aria-labelledby="info-title">
+  <div class="info-card">
+    <div class="info-head">
+      <h2 id="info-title">Map key</h2>
+      <button type="button" id="info-close" class="info-close" aria-label="Close">✕</button>
+    </div>
+    <div class="info-body">
+      <h3>Mark colours</h3>
+      <p class="hint">Taken from each mark's charted light characteristic, so a mark is drawn the colour it actually is on the water.</p>
+      <ul class="legend" id="legend-colors"></ul>
+
+      <h3>Course symbols</h3>
+      <ul class="legend" id="legend-symbols"></ul>
+
+      <h3>Where the marks come from</h3>
+      <p class="hint" id="info-note"></p>
+      <p class="hint" id="info-disclaimer"></p>
+    </div>
+  </div>
+</div>
+
 <div id="sheet" class="sheet">
   <button type="button" id="sheet-toggle" class="sheet-toggle">
     <span id="sheet-toggle-label">Build course</span>

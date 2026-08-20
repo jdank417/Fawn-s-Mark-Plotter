@@ -95,6 +95,12 @@
     rcPaletteHint: document.getElementById("rc-palette-hint"),
     rcBurgee: document.getElementById("rc-burgee"),
     rcBurgeeCaption: document.getElementById("rc-burgee-caption"),
+    infoPanel: document.getElementById("info-panel"),
+    infoClose: document.getElementById("info-close"),
+    legendColors: document.getElementById("legend-colors"),
+    legendSymbols: document.getElementById("legend-symbols"),
+    infoNote: document.getElementById("info-note"),
+    infoDisclaimer: document.getElementById("info-disclaimer"),
   };
 
   fetch("data/marks.json")
@@ -172,6 +178,13 @@
     });
     el.sheetToggle.addEventListener("click", toggleSheet);
     el.infoBtn.addEventListener("click", showInfo);
+    el.infoClose.addEventListener("click", hideInfo);
+    el.infoPanel.addEventListener("click", (e) => {
+      if (e.target === el.infoPanel) hideInfo();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !el.infoPanel.hidden) hideInfo();
+    });
     el.locateBtn.addEventListener("click", onLocateClick);
 
     el.modeClassicBtn.addEventListener("click", () => setEntryMode("classic"));
@@ -1500,10 +1513,87 @@
     }
   }
 
-  function showInfo() {
+  // The legend is built from the same colour classifier and badge styling the
+  // map itself uses, so the key can't drift from what actually gets drawn.
+  const COLOR_LEGEND = [
+    [[[{ kind: "red" }, "R"]],
+     "Red — a nun or red light. Keep it to starboard coming in from seaward."],
+    [[[{ kind: "green" }, "G"]],
+     "Green — a can or green light. Keep it to port coming in from seaward."],
+    [[[{ kind: "junction", top: "red", bottom: "green" }, "RG"],
+      [{ kind: "junction", top: "green", bottom: "red" }, "GR"]],
+     "Red-and-green bands — a junction buoy. The top band is the preferred channel."],
+    [[[{ kind: "safe-water" }, "RW"]],
+     "Red-and-white stripes — a safe-water mark, deep water all round it."],
+    [[[{ kind: "yellow" }, "Y"]],
+     "Yellow — a special mark. No navigational meaning; it marks an area."],
+    [[[{ kind: "orange" }, "Or"]],
+     "Orange — a racing barrel the club lays, not a government buoy."],
+    [[[{ kind: "white" }, "W"]],
+     "White — a white special or regulatory buoy."],
+    [[[{ kind: "neutral" }, "F"]],
+     "Blue — no colour on the chart. Either a portable mark the RC sets on the " +
+     "day, or a charted mark whose colour isn't recorded in the club's list."],
+  ];
+
+  function legendRow(swatchHtml, text) {
+    const li = document.createElement("li");
+    const sw = document.createElement("span");
+    sw.className = "legend-swatch";
+    sw.innerHTML = swatchHtml;
+    const label = document.createElement("span");
+    label.className = "legend-text";
+    label.textContent = text;
+    li.appendChild(sw);
+    li.appendChild(label);
+    return li;
+  }
+
+  function badgeHtml(colorInfo, label, extra) {
+    return "<span class='mark-badge legend-badge' style='" + markBadgeStyleAttr(colorInfo) + "'>" +
+      label + (extra || "") + "</span>";
+  }
+
+  function renderLegend() {
+    el.legendColors.innerHTML = "";
+    COLOR_LEGEND.forEach(([badges, text]) => {
+      const swatch = badges.map(([info, label]) => badgeHtml(info, label)).join("");
+      el.legendColors.appendChild(legendRow(swatch, text));
+    });
+
+    el.legendSymbols.innerHTML = "";
+    const rows = [
+      [badgeHtml({ kind: "green" }, "D", "<span class='badge-start'>START</span>"),
+       "The mark the course starts from. It keeps its own letter and colour."],
+      [badgeHtml({ kind: "red" }, "H", "<span class='badge-round round-S'>S</span>"),
+       "Rounding: S = leave to starboard, P = leave to port"],
+      ["<span class='round-tag round-S'>S</span><span class='round-tag round-inherited round-P'>P</span>",
+       "Filled = set on that mark; dashed = following the green flag"],
+      ["<span class='legend-arrow'><span class='course-arrow'></span></span>",
+       "Direction of travel along each leg"],
+      ["<span class='legend-line'></span>" + burgeeSvg(currentClubCode() || "BYC", 26, 17),
+       "Start line, square to the first leg, with the committee boat at its outer end"],
+      ["<span class='legend-gps'></span>", "Your GPS position, with its accuracy circle"],
+      ["<span class='legend-leg'></span>", "A leg of the course"],
+      ["<span class='legend-leg legend-leg-active'></span>", "The leg currently selected in the stepper"],
+    ];
+    rows.forEach(([html, text]) => el.legendSymbols.appendChild(legendRow(html, text)));
+
     const meta = state.data && state.data.meta;
-    if (!meta) return;
-    alert(meta.note + "\n\n" + meta.disclaimer);
+    if (meta) {
+      el.infoNote.textContent = meta.note;
+      el.infoDisclaimer.textContent = meta.disclaimer;
+    }
+  }
+
+  function showInfo() {
+    if (!state.data) return;
+    renderLegend();
+    el.infoPanel.hidden = false;
+  }
+
+  function hideInfo() {
+    el.infoPanel.hidden = true;
   }
 
   // ---------- GPS ----------

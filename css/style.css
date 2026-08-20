@@ -1118,3 +1118,186 @@ select,
   border-top: 1px solid var(--border);
   z-index: 5;
 }
+
+/* ---------- Info sheet: the map key ---------- */
+
+/* Sits above the bottom sheet and the suggestion overlay (z 1000 / 1200) so
+   it can be opened from either state without being buried. */
+.info-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(8, 16, 24, 0.55);
+  backdrop-filter: blur(2px);
+  padding-top: env(safe-area-inset-top);
+}
+
+.info-card {
+  width: 100%;
+  max-width: 34rem;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -6px 28px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.info-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.info-head h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.info-close {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--chip-bg);
+  color: var(--text);
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.info-close:active { background: var(--border); }
+
+.info-body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.75rem 1rem calc(1rem + env(safe-area-inset-bottom));
+}
+
+.info-body h3 {
+  margin: 1.1rem 0 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+}
+
+.info-body h3:first-child { margin-top: 0; }
+
+.info-body .hint {
+  margin: 0 0 0.5rem;
+}
+
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.35rem 0;
+}
+
+.legend li + li {
+  border-top: 1px solid var(--border);
+}
+
+/* The START plate hangs above its badge on the map, so that one row needs
+   headroom or it rides up into the row above it. */
+.legend li:has(.badge-start) {
+  padding-top: 1.15rem;
+}
+
+.legend-swatch {
+  flex: none;
+  width: 60px;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.legend-swatch .burgee-svg {
+  display: block;
+}
+
+.legend-text {
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+
+.legend-badge {
+  cursor: default;
+}
+
+/* Map symbols, drawn the same way the map draws them. */
+.legend-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.legend-arrow .course-arrow {
+  margin: 0;
+  transform: rotate(90deg);
+}
+
+.legend-line {
+  width: 24px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--text);
+}
+
+.legend-gps {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(26, 115, 232, 0.16);
+  border: 1px solid var(--gps-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.legend-gps::after {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--gps-blue);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Legs are drawn dashed on the map: blue normally, orange for the leg the
+   stepper is sitting on. */
+.legend-leg {
+  width: 40px;
+  height: 0;
+  /* Literal map colours, not theme tokens — the key has to match what the
+     map actually draws in both themes. */
+  border-top: 3px dashed #1d6fa5;
+}
+
+.legend-leg.legend-leg-active {
+  border-top-color: #ff5a1f;
+}
