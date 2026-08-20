@@ -41,6 +41,11 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+/* The leg strip and leg navigator set display:flex, which outranks the
+   browser's own [hidden] rule — so toggling .hidden on them did nothing and
+   they stayed on screen showing a stale course after a clear. */
+[hidden] { display: none !important; }
+
 html, body {
   height: 100%;
   overscroll-behavior: none;
@@ -907,4 +912,54 @@ select.compact, input[type="text"], input[type="number"], button {
 
 @media (prefers-reduced-motion: reduce) {
   .leg-card, .mark-badge, .round-tag, .rc-slot-flag, .seg-btn { transition: none; }
+}
+
+/* ---------- Start-line marking ---------- */
+
+/* Small blue plate under the mark badge so the start is identifiable at a
+   glance while still showing the mark's own letter. */
+.mark-badge .badge-start {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--gps-blue);
+  color: #fff;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1.1;
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 1px solid #fff;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.chip .start-tag {
+  background: var(--gps-blue);
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 0.05rem 0.28rem;
+  border-radius: 3px;
+}
+
+/* ---------- Double-tap zoom ----------
+   iOS Safari ignores maximum-scale, so double-tapping a control zooms the
+   whole page. touch-action: manipulation keeps panning and pinch-zoom but
+   drops the double-tap-to-zoom gesture. Leaflet sets its own touch-action
+   on the map panes, so the map's gestures are unaffected. */
+body,
+button,
+input,
+select,
+.sheet,
+.leg-strip,
+.chips,
+.fab,
+.leg-nav,
+.suggestions {
+  touch-action: manipulation;
 }

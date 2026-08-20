@@ -24,6 +24,9 @@
     defaultRounding: null,
     // Code flag T flown by the RC: sail the course twice.
     twiceAround: false,
+    // uid of the course entry acting as the start line, once one has been
+    // set from GPS or a charted mark.
+    startUid: null,
   };
 
   let uidCounter = 0;
@@ -225,6 +228,7 @@
 
     state.course = [];
     state.committed = false;
+    state.startUid = null;
     renderChips();
     renderBoard();
     hideLegStrip();
@@ -314,6 +318,15 @@
   // rather than guessing.
   function effectiveRounding(entry) {
     return entry.rounding || state.defaultRounding;
+  }
+
+  // The start is whichever entry a start position was applied to. Before
+  // that, fall back to a leading mark the club's own list calls a start
+  // (BYC "Portable Start/Finish", JYC "Portable Start"), so a course typed
+  // straight in still shows where it begins.
+  function isStartEntry(entry, index) {
+    if (state.startUid != null) return entry.uid === state.startUid;
+    return index === 0 && /start/i.test(entry.mark.name || "");
   }
 
   function roundingWord(rounding) {
@@ -483,6 +496,7 @@
   function clearCourse() {
     state.course = [];
     state.committed = false;
+    state.startUid = null;
     cancelStartPickMode();
     renderChips();
     renderBoard();
@@ -507,6 +521,14 @@
       const label = document.createElement("span");
       label.textContent = (idx + 1) + ". " + entry.mark.label;
       chip.appendChild(label);
+
+      if (isStartEntry(entry, idx)) {
+        const startTag = document.createElement("span");
+        startTag.className = "start-tag";
+        startTag.textContent = "START";
+        startTag.title = "Start line";
+        chip.appendChild(startTag);
+      }
 
       // Always render the rounding tag (muted when nothing is set yet) so
       // rounding is reachable from classic entry without the RC board.
@@ -853,6 +875,7 @@
               govtLight: entry.mark.govt_light,
               portable: entry.mark.portable,
               rounding: effectiveRounding(entry),
+              isStart: isStartEntry(entry, i),
             }
           : null
       );
@@ -1045,13 +1068,15 @@
     }
   }
 
-  function markBadgeIcon(label, colorInfo, rounding) {
+  function markBadgeIcon(label, colorInfo, rounding, isStart) {
     const roundBadge = rounding
       ? "<span class='badge-round round-" + rounding + "'>" + rounding + "</span>"
       : "";
+    const startBadge = isStart ? "<span class='badge-start'>START</span>" : "";
     return L.divIcon({
       className: "mark-icon",
-      html: "<div class='mark-badge' style='" + markBadgeStyleAttr(colorInfo) + "'>" + label + roundBadge + "</div>",
+      html: "<div class='mark-badge' style='" + markBadgeStyleAttr(colorInfo) + "'>" +
+        label + roundBadge + startBadge + "</div>",
       iconSize: [26, 26],
       iconAnchor: [13, 13],
       tooltipAnchor: [0, -16],
@@ -1068,7 +1093,7 @@
   }
 
   function geometryKey(points) {
-    return JSON.stringify(points.map((p) => (p ? [p.label, p.lat, p.lon, p.rounding || ""] : null)));
+    return JSON.stringify(points.map((p) => (p ? [p.label, p.lat, p.lon, p.rounding || "", !!p.isStart] : null)));
   }
 
   function positionKey(points) {
@@ -1108,10 +1133,12 @@
         const colorInfo = classifyMarkColor(p.govtLight, p.portable);
         const colorWord = colorLabel(colorInfo);
         const roundWord = roundingWord(p.rounding);
-        markerByIndex[idx] = L.marker([p.lat, p.lon], { icon: markBadgeIcon(p.label, colorInfo, p.rounding) })
+        markerByIndex[idx] = L.marker([p.lat, p.lon], {
+          icon: markBadgeIcon(p.label, colorInfo, p.rounding, p.isStart),
+        })
           .addTo(courseLayer)
           .bindTooltip(
-            p.label + " — " + p.name +
+            (p.isStart ? "START — " : "") + p.label + " — " + p.name +
             (colorWord ? " (" + colorWord + ")" : "") +
             (roundWord ? " · " + roundWord : "")
           );
@@ -1302,6 +1329,7 @@
 
   function applyStartPosition(position, sourceLabel) {
     const target = ensureStartEntry();
+    state.startUid = target.uid;
     const targetId = target.mark.id;
     let count = 0;
     state.course.forEach((entry) => {
